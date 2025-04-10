@@ -1,7 +1,6 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg");
+const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 const port = 5000;
@@ -10,24 +9,41 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-// Configuración de PostgreSQL
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+// Configuración de SQLite
+const db = new sqlite3.Database("./database.sqlite", (err) => {
+  if (err) {
+    console.error("Error al conectar con SQLite:", err.message);
+  } else {
+    console.log("Conectado a la base de datos SQLite.");
+  }
 });
 
-// Ruta de prueba para verificar conexión con PostgreSQL
-app.get("/api/users", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM users");
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error en el servidor" });
-  }
+// Crear tabla de ejemplo si no existe
+db.serialize(() => {
+  db.run(
+    `CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE
+    )`,
+    (err) => {
+      if (err) {
+        console.error("Error al crear la tabla:", err.message);
+      }
+    }
+  );
+});
+
+// Ruta de prueba para verificar conexión con SQLite
+app.get("/api/users", (req, res) => {
+  db.all("SELECT * FROM users", [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error en el servidor" });
+    } else {
+      res.json(rows);
+    }
+  });
 });
 
 // Iniciar servidor
