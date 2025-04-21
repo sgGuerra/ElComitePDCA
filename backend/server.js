@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const port = 5000;
@@ -23,7 +24,8 @@ db.serialize(() => {
     `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE
+      email TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL
     )`,
     (err) => {
       if (err) {
@@ -160,6 +162,51 @@ app.put("/api/procesos/:id", (req, res) => {
       }
     }
   );
+});
+
+// Crear un nuevo usuario
+app.post('/api/users', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Nombre, correo y contraseña son obligatorios' });
+  }
+
+  try {
+    // Encriptar la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const query = `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`;
+
+    db.run(query, [name, email, hashedPassword], function (err) {
+      if (err) {
+        console.error('Error al agregar el usuario:', err.message);
+        return res.status(500).json({ error: 'Error al agregar el usuario' });
+      }
+      res.status(201).json({ id: this.lastID, message: 'Usuario agregado exitosamente' });
+    });
+  } catch (error) {
+    console.error('Error al encriptar la contraseña:', error.message);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
+// Eliminar un usuario
+app.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+
+  const query = `DELETE FROM users WHERE id = ?`;
+
+  db.run(query, [id], function (err) {
+    if (err) {
+      console.error('Error al eliminar el usuario:', err.message);
+      return res.status(500).json({ error: 'Error al eliminar el usuario' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json({ message: 'Usuario eliminado exitosamente' });
+  });
 });
 
 // Ruta de prueba para verificar conexión con SQLite

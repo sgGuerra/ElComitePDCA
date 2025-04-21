@@ -5,6 +5,7 @@ import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Procesos from '../pages/ProcessList';
 import ProcesoDetalle from '../pages/ProcessDetail';
+import AdminPanel from '../pages/AdminPanel';
 
 export default function AppRoutes() {
   return (
@@ -14,6 +15,7 @@ export default function AppRoutes() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/procesos" element={<Procesos />} />
       <Route path="/procesos/:id" element={<ProcesoDetalle />} />
+      <Route path="/admin" element={<AdminPanel />} />
     </Routes>
   );
 }

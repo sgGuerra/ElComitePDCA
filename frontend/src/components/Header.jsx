@@ -11,6 +11,8 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
       navigate('/procesos');
     } else if (tab === 'Resumen') {
       navigate('/dashboard');
+    } else if (tab === 'Admin Panel') {
+      navigate('/admin');
     }
   };
 
@@ -35,7 +37,10 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
       </div>
 
       <div className="flex items-center space-x-4">
-        <button className="border border-primary text-primary px-3 py-1 rounded-md text-sm font-medium hover:bg-primary/10">
+        <button
+          onClick={() => handleTabClick('Admin Panel')}
+          className="border border-primary text-primary px-3 py-1 rounded-md text-sm font-medium hover:bg-primary/10"
+        >
           Admin Panel
         </button>
         <div className="relative">
