@@ -3,7 +3,7 @@ import { FaBell, FaCog, FaUserCircle, FaRegClock, FaRegCheckCircle, FaPlus } fro
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import Header from '../components/Header';
-import Procesos from './Processes';
+import Procesos from './ProcessList';
 
 const pieChartData = [
   { name: 'Auditorías Internas', value: 40, fill: '#143261' },

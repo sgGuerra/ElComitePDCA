@@ -1,41 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaUserPlus, FaCalendarAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 
 const Procesos = () => {
-  const [procesosData, setProcesosData] = useState([
-    {
-      id: 1,
-      nombre: 'Mejora en atención al cliente',
-      lider: 'Juan Pérez',
-      origen: 'Auditoría Interna',
-      fechaInicio: '2025-04-01',
-      fechaVencimiento: '2025-04-30',
-      meta: 'Mejorar la calidad del servicio',
-      que: 'Fallas en la atención al cliente',
-      porQue: 'Incrementar la satisfacción del cliente',
-      como: 'Capacitación al personal',
-      donde: 'Departamento de atención al cliente',
-      estado: 'En proceso',
-    },
-    {
-      id: 2,
-      nombre: 'Optimización de tiempos de espera',
-      lider: 'María López',
-      origen: 'Encuesta',
-      fechaInicio: '2025-03-01',
-      fechaVencimiento: '2025-03-31',
-      meta: 'Reducir tiempos de espera',
-      que: 'Largas filas en recepción',
-      porQue: 'Optimizar recursos',
-      como: 'Implementar turnos digitales',
-      donde: 'Recepción principal',
-      estado: 'Completado',
-    },
-  ]);
-
+  const [procesosData, setProcesosData] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [newProceso, setNewProceso] = useState({
     nombre: '',
     lider: '',
@@ -47,7 +18,15 @@ const Procesos = () => {
     porQue: '',
     como: '',
     donde: '',
+    estado: 'En proceso',
   });
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/procesos")
+      .then((response) => response.json())
+      .then((data) => setProcesosData(data))
+      .catch((error) => console.error("Error al obtener los procesos:", error));
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -56,27 +35,49 @@ const Procesos = () => {
 
   const handleAddProceso = (e) => {
     e.preventDefault();
+
     if (!newProceso.nombre || !newProceso.lider || !newProceso.origen || !newProceso.fechaInicio || !newProceso.fechaVencimiento) {
-      alert('Por favor, completa todos los campos obligatorios.');
+      setSuccessMessage('Por favor, completa todos los campos obligatorios.');
       return;
     }
-    setProcesosData([
-      ...procesosData,
-      { id: procesosData.length + 1, ...newProceso },
-    ]);
-    setNewProceso({
-      nombre: '',
-      lider: '',
-      origen: '',
-      fechaInicio: '',
-      fechaVencimiento: '',
-      meta: '',
-      que: '',
-      porQue: '',
-      como: '',
-      donde: '',
-    });
-    setShowForm(false);
+
+    fetch("http://localhost:5000/api/procesos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newProceso),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Error al crear el proceso");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setProcesosData([...procesosData, { id: data.id, ...newProceso }]);
+        setNewProceso({
+          nombre: '',
+          lider: '',
+          origen: '',
+          fechaInicio: '',
+          fechaVencimiento: '',
+          meta: '',
+          que: '',
+          porQue: '',
+          como: '',
+          donde: '',
+          estado: 'En proceso',
+        });
+        setShowForm(false);
+        setSuccessMessage('¡Proceso creado exitosamente!');
+
+        setTimeout(() => setSuccessMessage(''), 3000);
+      })
+      .catch((error) => {
+        console.error("Error al crear el proceso:", error);
+        setSuccessMessage('Hubo un error al crear el proceso.');
+      });
   };
 
   return (
@@ -96,6 +97,12 @@ const Procesos = () => {
             Crear Proceso
           </button>
         </div>
+
+        {successMessage && (
+          <div className="bg-green-100 text-green-700 px-4 py-2 rounded-md mb-4">
+            {successMessage}
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm border border-gray-200 rounded-lg">

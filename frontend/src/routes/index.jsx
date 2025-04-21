@@ -3,7 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
-import Procesos from '../pages/Processes';
+import Procesos from '../pages/ProcessList';
+import ProcesoDetalle from '../pages/ProcessDetail';
 
 export default function AppRoutes() {
   return (
@@ -12,6 +13,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/procesos" element={<Procesos />} />
+      <Route path="/procesos/:id" element={<ProcesoDetalle />} />
     </Routes>
   );
 }
