@@ -1,0 +1,36 @@
+backend/
+├── config/
+│   ├── database.js
+│   └── config.js
+├── controllers/
+│   ├── actionController.js
+│   ├── authController.js
+│   ├── findingController.js
+│   ├── opportunityController.js
+│   ├── processController.js
+│   └── userController.js
+├── middleware/
+│   ├── auth.js
+│   └── upload.js
+├── models/
+│   ├── Action.js
+│   ├── Finding.js
+│   ├── Notification.js
+│   ├── Opportunity.js
+│   ├── Process.js
+│   └── User.js
+├── routes/
+│   ├── actionRoutes.js
+│   ├── authRoutes.js
+│   ├── findingRoutes.js
+│   ├── opportunityRoutes.js
+│   ├── processRoutes.js
+│   └── userRoutes.js
+├── utils/
+│   ├── database.js
+│   └── logger.js
+├── uploads/
+├── .env
+├── .gitignore
+├── package.json
+└── server.js
