@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
-const ProcesoDetalle = () => {
+const ActionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [proceso, setProceso] = useState(null);
@@ -224,4 +224,4 @@ const ProcesoDetalle = () => {
   );
 };
 
-export default ProcesoDetalle;
+export default ActionDetail;

@@ -3,8 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
-import Procesos from '../pages/ProcessList';
-import ProcesoDetalle from '../pages/ProcessDetail';
+import ProcessList from '../pages/ProcessList';
+import Actions from '../pages/ActionsList';
+import ActionDetail from '../pages/ActionDetail';
 import AdminPanel from '../pages/AdminPanel';
 
 export default function AppRoutes() {
@@ -13,8 +14,9 @@ export default function AppRoutes() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/procesos" element={<Procesos />} />
-      <Route path="/procesos/:id" element={<ProcesoDetalle />} />
+      <Route path="/procesos" element={<ProcessList />} />
+      <Route path="/procesos/:procesoId/acciones" element={<Actions />} />
+      <Route path="/procesos/:procesoId/acciones/:accionId" element={<ActionDetail />} />
       <Route path="/admin" element={<AdminPanel />} />
     </Routes>
   );

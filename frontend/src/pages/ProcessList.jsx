@@ -1,82 +1,94 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserPlus, FaCalendarAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 
-const Procesos = () => {
-  const [procesosData, setProcesosData] = useState([]);
+const ProcessList = () => {
+  const [processes, setProcesses] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [newProcess, setNewProcess] = useState({ nombre: '' });
+  const [editProcess, setEditProcess] = useState(null);
+  const [errors, setErrors] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [newProceso, setNewProceso] = useState({
-    nombre: '',
-    lider: '',
-    origen: '',
-    fechaInicio: '',
-    fechaVencimiento: '',
-    meta: '',
-    que: '',
-    porQue: '',
-    como: '',
-    donde: '',
-    estado: 'En proceso',
-  });
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/procesos")
+    fetch('http://localhost:5000/api/procesos')
       .then((response) => response.json())
-      .then((data) => setProcesosData(data))
-      .catch((error) => console.error("Error al obtener los procesos:", error));
+      .then((data) => setProcesses(data))
+      .catch((error) => console.error('Error al obtener los procesos:', error));
   }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewProceso({ ...newProceso, [name]: value });
+    if (editProcess) {
+      setEditProcess({ ...editProcess, [name]: value });
+    } else {
+      setNewProcess({ ...newProcess, [name]: value });
+    }
+    setErrors('');
   };
 
-  const handleAddProceso = (e) => {
-    e.preventDefault();
-
-    if (!newProceso.nombre || !newProceso.lider || !newProceso.origen || !newProceso.fechaInicio || !newProceso.fechaVencimiento) {
-      setSuccessMessage('Por favor, completa todos los campos obligatorios.');
-      return;
+  const validateForm = () => {
+    if (!newProcess.nombre.trim() && !editProcess?.nombre.trim()) {
+      setErrors('El nombre es obligatorio.');
+      return false;
     }
+    return true;
+  };
 
-    fetch("http://localhost:5000/api/procesos", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newProceso),
+  const handleAddProcess = (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    fetch('http://localhost:5000/api/procesos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newProcess, estado: 'En proceso' }),
     })
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Error al crear el proceso");
-        }
+        if (!response.ok) throw new Error('Error al crear el proceso');
         return response.json();
       })
       .then((data) => {
-        setProcesosData([...procesosData, { id: data.id, ...newProceso }]);
-        setNewProceso({
-          nombre: '',
-          lider: '',
-          origen: '',
-          fechaInicio: '',
-          fechaVencimiento: '',
-          meta: '',
-          que: '',
-          porQue: '',
-          como: '',
-          donde: '',
-          estado: 'En proceso',
-        });
+        setProcesses([...processes, { id: data.id, ...newProcess, acciones: 0 }]);
+        setNewProcess({ nombre: '' });
         setShowForm(false);
         setSuccessMessage('¡Proceso creado exitosamente!');
-
         setTimeout(() => setSuccessMessage(''), 3000);
       })
       .catch((error) => {
-        console.error("Error al crear el proceso:", error);
-        setSuccessMessage('Hubo un error al crear el proceso.');
+        console.error('Error al crear el proceso:', error);
+        setErrors('Hubo un error al crear el proceso.');
+      });
+  };
+
+  const handleEditProcess = (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    fetch(`http://localhost:5000/api/procesos/${editProcess.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editProcess),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('Error al editar el proceso');
+        return response.json();
+      })
+      .then(() => {
+        setProcesses(
+          processes.map((process) =>
+            process.id === editProcess.id ? editProcess : process
+          )
+        );
+        setEditProcess(null);
+        setShowEditForm(false);
+        setSuccessMessage('¡Proceso editado exitosamente!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      })
+      .catch((error) => {
+        console.error('Error al editar el proceso:', error);
+        setErrors('Hubo un error al editar el proceso.');
       });
   };
 
@@ -89,7 +101,7 @@ const Procesos = () => {
       />
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-primary">Procesos</h2>
+          <h2 className="text-xl font-semibold text-primary">Lista de Procesos</h2>
           <button
             onClick={() => setShowForm(true)}
             className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90"
@@ -109,47 +121,40 @@ const Procesos = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Nombre</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Líder</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Origen</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Fecha Inicio</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Fecha Vencimiento</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Meta</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Estado</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Planes de mejoramiento asignados</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {procesosData.map((proceso, index) => (
+              {processes.map((process, index) => (
                 <tr
-                  key={proceso.id}
+                  key={process.id}
                   className={`${
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                   } hover:bg-gray-100 transition-colors`}
                 >
                   <td className="py-3 px-4 text-gray-800">
                     <Link
-                      to={`/procesos/${proceso.id}`}
+                      to={`/procesos/${process.id}/acciones`}
                       className="text-primary hover:underline"
                     >
-                      {proceso.nombre}
+                      {process.nombre}
                     </Link>
                   </td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.lider}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.origen}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.fechaInicio}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.fechaVencimiento}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.meta}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        proceso.estado === 'Completado'
-                          ? 'bg-green-100 text-green-700'
-                          : proceso.estado === 'En proceso'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
+                  <td className="py-3 px-4 text-gray-800">{process.acciones || 0}</td>
+                  <td className="py-3 px-4 space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditProcess(process);
+                        setShowEditForm(true);
+                      }}
+                      className="text-sm text-blue-500 hover:underline"
                     >
-                      {proceso.estado}
-                    </span>
+                      Editar
+                    </button>
+                    <button className="text-sm text-red-500 hover:underline">
+                      Eliminar
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -157,137 +162,30 @@ const Procesos = () => {
           </table>
         </div>
 
+        {/* Formulario para crear un nuevo proceso */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-8 rounded-lg shadow-lg w-[90%] max-w-4xl">
-              <h3 className="text-lg font-semibold text-primary mb-6">Nombre del plan de mejora</h3>
-              <form onSubmit={handleAddProceso} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Nombre del proceso</label>
+            <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
+              <h3 className="text-lg font-semibold text-primary mb-4">Crear Proceso</h3>
+              <form onSubmit={handleAddProcess} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nombre del Proceso</label>
                   <input
                     type="text"
                     name="nombre"
-                    value={newProceso.nombre}
+                    value={newProcess.nombre}
                     onChange={handleInputChange}
-                    placeholder="Nombre del proceso"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                    className={`w-full px-3 py-2 border ${errors ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
                   />
+                  {errors && <p className="text-red-500 text-xs mt-1">{errors}</p>}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Líder de proceso</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="lider"
-                      value={newProceso.lider}
-                      onChange={handleInputChange}
-                      placeholder="Asignar líder de proceso"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                    />
-                    <FaUserPlus className="absolute top-3 right-3 text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Origen</label>
-                  <select
-                    name="origen"
-                    value={newProceso.origen}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  >
-                    <option value="">Seleccionar la fuente del hallazgo</option>
-                    <option value="Auditoría Interna">Auditoría Interna</option>
-                    <option value="Auditoría Externa">Auditoría Externa</option>
-                    <option value="Encuesta">Encuesta</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Fecha de inicio</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      name="fechaInicio"
-                      value={newProceso.fechaInicio}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                    />
-                    <FaCalendarAlt className="absolute top-3 right-3 text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Fecha de vencimiento</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      name="fechaVencimiento"
-                      value={newProceso.fechaVencimiento}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                    />
-                    <FaCalendarAlt className="absolute top-3 right-3 text-gray-400" />
-                  </div>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Meta de la acción</label>
-                  <textarea
-                    name="meta"
-                    value={newProceso.meta}
-                    onChange={handleInputChange}
-                    placeholder="Describir los aspectos a mejorar con la implementación"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Qué?</label>
-                  <input
-                    type="text"
-                    name="que"
-                    value={newProceso.que}
-                    onChange={handleInputChange}
-                    placeholder="Defina los problemas o fallas de calidad"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Por qué?</label>
-                  <input
-                    type="text"
-                    name="porQue"
-                    value={newProceso.porQue}
-                    onChange={handleInputChange}
-                    placeholder="Defina las razones por las cuales las eligió"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Cómo?</label>
-                  <input
-                    type="text"
-                    name="como"
-                    value={newProceso.como}
-                    onChange={handleInputChange}
-                    placeholder="Acciones de mejoramiento"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Dónde?</label>
-                  <input
-                    type="text"
-                    name="donde"
-                    value={newProceso.donde}
-                    onChange={handleInputChange}
-                    placeholder="Proceso responsable de la implementación"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                </div>
-                <div className="md:col-span-2 flex justify-end space-x-4">
+                <div className="flex justify-end space-x-4">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                   >
-                    Cerrar
+                    Cancelar
                   </button>
                   <button
                     type="submit"
@@ -300,9 +198,46 @@ const Procesos = () => {
             </div>
           </div>
         )}
+
+        {/* Formulario para editar un proceso */}
+        {showEditForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
+              <h3 className="text-lg font-semibold text-primary mb-4">Editar Proceso</h3>
+              <form onSubmit={handleEditProcess} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nombre del Proceso</label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={editProcess?.nombre || ''}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border ${errors ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                  />
+                  {errors && <p className="text-red-500 text-xs mt-1">{errors}</p>}
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditForm(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default Procesos;
+export default ProcessList;
