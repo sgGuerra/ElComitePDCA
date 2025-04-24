@@ -15,8 +15,8 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/procesos" element={<ProcessList />} />
-      <Route path="/procesos/:procesoId/acciones" element={<Actions />} />
-      <Route path="/procesos/:procesoId/acciones/:accionId" element={<ActionDetail />} />
+      <Route path="/procesos/:processId/acciones" element={<Actions />} />
+      <Route path="/procesos/:processId/acciones/:actionId" element={<ActionDetail />} />
       <Route path="/admin" element={<AdminPanel />} />
     </Routes>
   );

@@ -6,16 +6,17 @@ const ProcessList = () => {
   const [processes, setProcesses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [newProcess, setNewProcess] = useState({ nombre: '' });
+  const [newProcess, setNewProcess] = useState({ name: '', description: '' });
   const [editProcess, setEditProcess] = useState(null);
   const [errors, setErrors] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/procesos')
-      .then((response) => response.json())
-      .then((data) => setProcesses(data))
-      .catch((error) => console.error('Error al obtener los procesos:', error));
+    fetch('http://localhost:5000/api/processes', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setProcesses(data.data || []));
   }, []);
 
   const handleInputChange = (e) => {
@@ -29,62 +30,73 @@ const ProcessList = () => {
   };
 
   const validateForm = () => {
-    if (!newProcess.nombre.trim() && !editProcess?.nombre.trim()) {
+    const process = editProcess || newProcess;
+    if (!process.name.trim()) {
       setErrors('El nombre es obligatorio.');
       return false;
     }
     return true;
   };
 
-  const handleAddProcess = (e) => {
+  const handleAddProcess = async (e) => {
     e.preventDefault();
+    setErrors('');
     if (!validateForm()) return;
 
-    fetch('http://localhost:5000/api/procesos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newProcess, estado: 'En proceso' }),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('Error al crear el proceso');
-        return response.json();
-      })
-      .then((data) => {
-        setProcesses([...processes, { id: data.id, ...newProcess, acciones: 0 }]);
-        setNewProcess({ nombre: '' });
+    try {
+      const res = await fetch('http://localhost:5000/api/processes', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(newProcess)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProcesses([...processes, data.data]);
         setShowForm(false);
+        setNewProcess({ name: '', description: '' });
         setSuccessMessage('¡Proceso creado exitosamente!');
         setTimeout(() => setSuccessMessage(''), 3000);
-      })
-      .catch((error) => {
-        console.error('Error al crear el proceso:', error);
-        setErrors('Hubo un error al crear el proceso.');
-      });
+      } else {
+        setErrors(data.message || 'Error al crear el proceso.');
+      }
+    } catch (error) {
+      setErrors('Error de red al crear el proceso.');
+    }
   };
 
   const handleEditProcess = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    fetch(`http://localhost:5000/api/procesos/${editProcess.id}`, {
+    fetch(`http://localhost:5000/api/processes/${editProcess.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editProcess),
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        name: editProcess.name,
+        description: editProcess.description
+      }),
     })
-      .then((response) => {
-        if (!response.ok) throw new Error('Error al editar el proceso');
-        return response.json();
-      })
-      .then(() => {
-        setProcesses(
-          processes.map((process) =>
-            process.id === editProcess.id ? editProcess : process
-          )
-        );
-        setEditProcess(null);
-        setShowEditForm(false);
-        setSuccessMessage('¡Proceso editado exitosamente!');
-        setTimeout(() => setSuccessMessage(''), 3000);
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          setProcesses(
+            processes.map((process) =>
+              process.id === editProcess.id ? { ...process, ...editProcess } : process
+            )
+          );
+          setEditProcess(null);
+          setShowEditForm(false);
+          setSuccessMessage('¡Proceso editado exitosamente!');
+          setTimeout(() => setSuccessMessage(''), 3000);
+        } else {
+          setErrors(data.message || 'Hubo un error al editar el proceso.');
+        }
       })
       .catch((error) => {
         console.error('Error al editar el proceso:', error);
@@ -121,7 +133,7 @@ const ProcessList = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Nombre</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Planes de mejoramiento asignados</th>
+                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Descripción</th>
                 <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Acciones</th>
               </tr>
             </thead>
@@ -138,10 +150,10 @@ const ProcessList = () => {
                       to={`/procesos/${process.id}/acciones`}
                       className="text-primary hover:underline"
                     >
-                      {process.nombre}
+                      {process.name}
                     </Link>
                   </td>
-                  <td className="py-3 px-4 text-gray-800">{process.acciones || 0}</td>
+                  <td className="py-3 px-4 text-gray-800">{process.description || ''}</td>
                   <td className="py-3 px-4 space-x-2">
                     <button
                       onClick={() => {
@@ -152,9 +164,7 @@ const ProcessList = () => {
                     >
                       Editar
                     </button>
-                    <button className="text-sm text-red-500 hover:underline">
-                      Eliminar
-                    </button>
+                    {/* Aquí puedes agregar el botón Eliminar si lo necesitas */}
                   </td>
                 </tr>
               ))}
@@ -172,10 +182,20 @@ const ProcessList = () => {
                   <label className="block text-sm font-medium text-gray-700">Nombre del Proceso</label>
                   <input
                     type="text"
-                    name="nombre"
-                    value={newProcess.nombre}
+                    name="name"
+                    value={newProcess.name}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                  <input
+                    type="text"
+                    name="description"
+                    value={newProcess.description}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
                   />
                   {errors && <p className="text-red-500 text-xs mt-1">{errors}</p>}
                 </div>
@@ -209,10 +229,20 @@ const ProcessList = () => {
                   <label className="block text-sm font-medium text-gray-700">Nombre del Proceso</label>
                   <input
                     type="text"
-                    name="nombre"
-                    value={editProcess?.nombre || ''}
+                    name="name"
+                    value={editProcess?.name || ''}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                  <input
+                    type="text"
+                    name="description"
+                    value={editProcess?.description || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
                   />
                   {errors && <p className="text-red-500 text-xs mt-1">{errors}</p>}
                 </div>

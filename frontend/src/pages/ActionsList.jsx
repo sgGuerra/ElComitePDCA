@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { FaUserPlus, FaCalendarAlt } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 
+
 const Actions = () => {
-  const [actionsData, setactionsData] = useState([]);
+  const { processId } = useParams();
+  const [actionsData, setActionsData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [newAction, setnewAction] = useState({
+  const [newAction, setNewAction] = useState({
     nombre: '',
     lider: '',
     origen: '',
@@ -28,7 +30,7 @@ const Actions = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setnewAction({ ...newAction, [name]: value });
+    setNewAction({ ...newAction, [name]: value });
     setErrors({ ...errors, [name]: '' });
   };
 
@@ -77,57 +79,52 @@ const Actions = () => {
   };
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/procesos")
-      .then((response) => response.json())
-      .then((data) => setactionsData(data))
-      .catch((error) => console.error("Error al obtener los procesos:", error));
+    fetch(`http://localhost:5000/api/processes/${processId}/actions`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setActionsData(data.data));
   }, []);
 
-  const handleAddProceso = (e) => {
+  const handleAddAction = async (e) => {
     e.preventDefault();
+    setErrors({});
     if (!validateForm()) return;
 
-    fetch("http://localhost:5000/api/procesos", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newAction),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Error al crear el proceso");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setactionsData([...actionsData, { id: data.id, ...newAction }]);
-        setnewAction({
-          nombre: '',
-          lider: '',
-          origen: '',
-          hallazgo: '',
-          fechaOrigen: '',
-          que: '',
-          porQue: '',
-          como: '',
-          meta: '',
-          tipoAccion: '',
-          donde: '',
-          fechaInicio: '',
-          fechaVencimiento: '',
-          atributoCalidad: '',
-          estado: 'En proceso',
-        });
-        setShowForm(false);
-        setSuccessMessage('¡Proceso creado exitosamente!');
-
-        setTimeout(() => setSuccessMessage(''), 3000);
-      })
-      .catch((error) => {
-        console.error("Error al crear el proceso:", error);
-        setSuccessMessage('Hubo un error al crear el proceso.');
+    try {
+      const res = await fetch(`http://localhost:5000/api/processes/${processId}/actions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          leader_id: newAction.lider,
+          name: newAction.nombre,
+          origin: newAction.origen,
+          start_date: newAction.fechaInicio,
+          due_date: newAction.fechaVencimiento,
+          goal: newAction.meta,
+          what: newAction.que,
+          why: newAction.porQue,
+          how: newAction.como,
+          location: newAction.donde,
+          status: newAction.estado,
+          type: newAction.tipoAccion
+        })
       });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActionsData([...actionsData, data.data]);
+        setShowForm(false);
+        setSuccessMessage('¡Acción creada exitosamente!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrors(data.message || 'Error al crear la acción.');
+      }
+    } catch (error) {
+      setErrors('Error de red al crear la acción.');
+    }
   };
 
   return (
@@ -211,7 +208,7 @@ const Actions = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-3xl h-[80%] overflow-y-auto">
               <h3 className="text-lg font-semibold text-primary mb-4">Crear Plan de Mejoramiento</h3>
-              <form onSubmit={handleAddProceso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleAddAction} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700">Nombre del plan de mejoramiento</label>
                   <input

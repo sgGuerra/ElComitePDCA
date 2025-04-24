@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Header from '../components/Header';
 import UserManagement from '../components/UserManagement';
 
+
 const AdminPanel = () => {
   const [view, setView] = useState('main'); // Estado para alternar vistas
 

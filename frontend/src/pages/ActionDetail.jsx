@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
+
 const ActionDetail = () => {
-  const { id } = useParams();
+  const { actionId } = useParams();
   const navigate = useNavigate();
   const [proceso, setProceso] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13,37 +14,43 @@ const ActionDetail = () => {
   const [archivos, setArchivos] = useState([]);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/procesos/${id}`)
+    fetch(`http://localhost:5000/api/actions/${actionId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then((response) => {
         if (!response.ok) {
-          throw new Error('Error al obtener los detalles del proceso.');
+          throw new Error('Error al obtener los detalles de la acción.');
         }
         return response.json();
       })
       .then((data) => {
-        setProceso(data);
+        setProceso(data.data);
+        setObservaciones(data.data.observations || []);
+        setArchivos(data.data.files || []);
         setLoading(false);
       })
       .catch((err) => {
         console.error(err);
-        setError('No se pudo cargar el proceso.');
+        setError('No se pudo cargar la acción.');
         setLoading(false);
       });
-  }, [id]);
+  }, [actionId]);
 
   const handleAddObservacion = () => {
     if (nuevaObservacion.trim()) {
-      const updatedObservaciones = [...observaciones, nuevaObservacion];
+      const updatedObservaciones = [...observaciones, { text: nuevaObservacion }];
       setObservaciones(updatedObservaciones);
       setNuevaObservacion('');
 
-      // Enviar las observaciones actualizadas al backend
-      fetch(`http://localhost:5000/api/procesos/${id}`, {
+      fetch(`http://localhost:5000/api/actions/${actionId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ observaciones: updatedObservaciones, archivos }),
+        body: JSON.stringify({ observations: updatedObservaciones, files: archivos }),
       })
         .then((response) => {
           if (!response.ok) {
@@ -65,13 +72,13 @@ const ActionDetail = () => {
     const updatedArchivos = [...archivos, ...uploadedFiles.map((file) => file.name)];
     setArchivos(updatedArchivos);
 
-    // Enviar los archivos actualizados al backend
-    fetch(`http://localhost:5000/api/procesos/${id}`, {
+    fetch(`http://localhost:5000/api/actions/${actionId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem('token')}`
       },
-      body: JSON.stringify({ observaciones, archivos: updatedArchivos }),
+      body: JSON.stringify({ observations: observaciones, files: updatedArchivos }),
     })
       .then((response) => {
         if (!response.ok) {
@@ -176,7 +183,7 @@ const ActionDetail = () => {
           <h2 className="text-lg font-semibold text-gray-700">Observaciones</h2>
           <ul className="list-disc pl-5 space-y-2">
             {observaciones.map((obs, index) => (
-              <li key={index} className="text-gray-800">{obs}</li>
+              <li key={index} className="text-gray-800">{obs.text}</li>
             ))}
           </ul>
           <div className="mt-4">
