@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config();
 const { initDatabase } = require('./utils/database');
 const logger = require('./utils/logger');
-const { swaggerSpec, swaggerUi } = require('./swagger');
+const { swaggerSpec, swaggerUi, swaggerUiOptions } = require('./swagger');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -18,14 +18,24 @@ const notificationRoutes = require('./routes/notificationRoutes');
 // Initialize express app
 const app = express();
 const PORT = process.env.PORT || 5000;
+const cookieParser = require('cookie-parser');
 
 // Middleware
-app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization']
+}));
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Swagger UI endpoint
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // Initialize database
 initDatabase()

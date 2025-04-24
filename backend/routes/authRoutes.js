@@ -15,29 +15,14 @@ const { authenticateToken } = require('../middleware/auth');
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 format: password
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
  *         description: Login successful
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                 user:
- *                   type: object
+ *               $ref: '#/components/schemas/LoginResponse'
  *       401:
  *         description: Invalid credentials
  *       500:
@@ -62,8 +47,11 @@ router.post('/login', authController.login);
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 user:
- *                   type: object
+ *                   $ref: '#/components/schemas/User'
  *       401:
  *         description: Unauthorized - Invalid or missing token
  *       500:
@@ -107,5 +95,28 @@ router.get('/me', authenticateToken, authController.getCurrentUser);
  *         description: Server error
  */
 router.post('/change-password', authenticateToken, authController.changePassword);
+
+
+logout: async (req, res) => {
+  try {
+    // Since JWT is stateless, client-side logout is sufficient
+    // But we can blacklist tokens in a real production app
+    
+    // For now, just return a successful response
+    res.json({
+      success: true,
+      message: 'Sesión cerrada exitosamente'
+    });
+    
+    // In a production app with token blacklisting:
+    
+  } catch (error) {
+    logger.error(`Logout error: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error en el servidor al cerrar sesión' 
+    });
+  }
+}
 
 module.exports = router;

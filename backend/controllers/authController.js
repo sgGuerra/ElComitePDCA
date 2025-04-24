@@ -14,7 +14,23 @@ const authController = {
    */
   login: async (req, res) => {
     try {
-      const { email, password } = req.body;
+      // Log all request info for debugging
+      console.log('Login request headers:', req.headers);
+      console.log('Login request body:', req.body);
+      
+      let email, password;
+      
+      // Check if this is an application/x-www-form-urlencoded request (OAuth2 flow)
+      if (req.headers['content-type'] && req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
+        // OAuth2 form request from Swagger
+        email = req.body.username; // OAuth2 sends username instead of email
+        password = req.body.password;
+        console.log('OAuth flow detected, using username as email');
+      } else {
+        // Regular JSON request
+        email = req.body.email;
+        password = req.body.password;
+      }
       
       if (!email || !password) {
         return res.status(400).json({ 
@@ -47,6 +63,19 @@ const authController = {
       
       logger.info(`User logged in successfully: ${user.email}`);
       
+      // Check if this is an OAuth2 request
+      if (req.headers['content-type'] && req.headers['content-type'].includes('application/x-www-form-urlencoded')) {
+        // OAuth2 response format
+        return res.json({
+          access_token: token,
+          token_type: 'Bearer',
+          expires_in: 86400, // 24 hours in seconds
+          user_id: user.id,
+          user_role: user.role
+        });
+      }
+      
+      // Regular JSON response format
       res.json({
         success: true,
         message: 'Inicio de sesión exitoso',
@@ -74,7 +103,7 @@ const authController = {
    */
   getCurrentUser: async (req, res) => {
     try {
-      // Get user from middleware
+      // Get user ID from token (set by middleware)
       const userId = req.user.id;
       
       // Get user details from database
@@ -123,11 +152,25 @@ const authController = {
         });
       }
       
-      // Get user to validate current password
-      const user = await User.findByEmail(req.user.email);
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'La nueva contraseña debe tener al menos 6 caracteres'
+        });
+      }
       
-      // Validate current password
-      const isValidPassword = await User.validateCredentials(user.email, currentPassword);
+      // Get user to validate current password
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+      
+      // Validate current password - get full user data with password
+      const userWithPassword = await User.findByEmail(req.user.email);
+      const isValidPassword = await bcrypt.compare(currentPassword, userWithPassword.password);
       
       if (!isValidPassword) {
         return res.status(401).json({
@@ -152,7 +195,31 @@ const authController = {
         message: 'Error en el servidor al cambiar la contraseña'
       });
     }
+},
+
+logout: async (req, res) => {
+  try {
+    // Since JWT is stateless, client-side logout is sufficient
+    // But we can blacklist tokens in a real production app
+    
+    // For now, just return a successful response
+    res.json({
+      success: true,
+      message: 'Sesión cerrada exitosamente'
+    });
+    
+    // In a production app with token blacklisting:
+    // await BlacklistedToken.add(req.token, req.user.id);
+    
+  } catch (error) {
+    logger.error(`Logout error: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error en el servidor al cerrar sesión' 
+    });
   }
+}
+
 };
 
 module.exports = authController;

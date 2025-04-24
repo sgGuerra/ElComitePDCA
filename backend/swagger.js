@@ -21,15 +21,109 @@ const swaggerDefinition = {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
+        description: 'Enter your bearer token in the format: Bearer <token>'
       },
+      OAuth2: {
+        type: 'oauth2',
+        flows: {
+          password: {
+            tokenUrl: '/api/auth/login',
+            scopes: {}
+          }
+        }
+      }
     },
+    schemas: {
+      // Keep all your existing schemas here
+      LoginRequest: {
+        type: 'object',
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+            example: 'admin@elcomite.org'
+          },
+          password: {
+            type: 'string',
+            format: 'password',
+            example: 'admin123'
+          }
+        },
+        required: ['email', 'password']
+      },
+      LoginResponse: {
+        type: 'object',
+        properties: {
+          success: {
+            type: 'boolean',
+            example: true
+          },
+          message: {
+            type: 'string',
+            example: 'Inicio de sesión exitoso'
+          },
+          token: {
+            type: 'string',
+            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+          },
+          user: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'integer',
+                example: 1
+              },
+              name: {
+                type: 'string',
+                example: 'Admin User'
+              },
+              email: {
+                type: 'string',
+                example: 'admin@elcomite.org'
+              },
+              role: {
+                type: 'string',
+                example: 'admin'
+              }
+            }
+          }
+        }
+      },
+      User: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'integer',
+            example: 1
+          },
+          name: {
+            type: 'string',
+            example: 'Admin User'
+          },
+          email: {
+            type: 'string',
+            example: 'admin@elcomite.org'
+          },
+          role: {
+            type: 'string',
+            example: 'admin'
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-01-01T00:00:00.000Z'
+          }
+        }
+      }
+    }
   },
   security: [
     {
-      bearerAuth: [],
-    },
+      bearerAuth: []
+    }
   ],
   tags: [
+    // Your existing tags
     {
       name: 'Authentication',
       description: 'User authentication endpoints',
@@ -71,4 +165,15 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-module.exports = { swaggerSpec, swaggerUi };
+// Configure SwaggerUI options
+const swaggerUiOptions = {
+  explorer: true,
+  swaggerOptions: {
+    persistAuthorization: true,
+    docExpansion: 'none',
+    filter: true,
+    displayRequestDuration: true
+  }
+};
+
+module.exports = { swaggerSpec, swaggerUi, swaggerUiOptions };

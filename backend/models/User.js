@@ -85,10 +85,20 @@ class User {
   static async findById(id) {
     try {
       const user = await get(
-        'SELECT id, name, email, role, created_at FROM users WHERE id = ?',
+        'SELECT id, name, email, role FROM users WHERE id = ?',
         [id]
       );
-      return user || null;
+      
+      if (user) {
+        // Add default timestamps if they don't exist in the database
+        return {
+          ...user,
+          created_at: user.created_at || new Date().toISOString(),
+          updated_at: user.updated_at || new Date().toISOString()
+        };
+      }
+      
+      return null;
     } catch (error) {
       logger.error(`Error finding user by ID: ${error.message}`);
       throw error;

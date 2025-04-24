@@ -13,13 +13,20 @@ const logger = require('../utils/logger');
  * @param {Function} next - Express next middleware function
  */
 const authenticateToken = (req, res, next) => {
-  // Get authorization header
-  const authHeader = req.headers['authorization'];
+  console.log('Checking for authorization...');
   
-  // Extract token from header
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  // Look for token in various places
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  const bearerToken = authHeader && authHeader.split(' ')[1];
+  const queryToken = req.query.token;
+  const cookieToken = req.cookies && req.cookies.token;
   
-  // Check if token exists
+  // Use the first available token
+  const token = bearerToken || queryToken || cookieToken;
+  
+  console.log('Auth Header:', authHeader);
+  console.log('Token found:', token ? 'Yes' : 'No');
+  
   if (!token) {
     return res.status(401).json({ 
       success: false, 
@@ -30,6 +37,7 @@ const authenticateToken = (req, res, next) => {
   try {
     // Verify token
     const decoded = jwt.verify(token, config.jwtSecret);
+    console.log('Token decoded successfully:', decoded);
     
     // Add user info to request
     req.user = decoded;
@@ -37,6 +45,7 @@ const authenticateToken = (req, res, next) => {
     // Continue to next middleware
     next();
   } catch (error) {
+    console.error('Token verification failed:', error.message);
     logger.error(`Authentication error: ${error.message}`);
     
     if (error.name === 'TokenExpiredError') {
@@ -46,7 +55,7 @@ const authenticateToken = (req, res, next) => {
       });
     }
     
-    return res.status(403).json({ 
+    return res.status(401).json({ 
       success: false, 
       message: 'Token inválido o manipulado.' 
     });
