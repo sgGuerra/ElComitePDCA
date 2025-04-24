@@ -1,6 +1,43 @@
 const { run, get, all } = require('../utils/database');
 const logger = require('../utils/logger');
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Notification:
+ *       type: object
+ *       required:
+ *         - user_id
+ *         - title
+ *         - message
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Unique identifier for the notification
+ *         user_id:
+ *           type: integer
+ *           description: ID of the user this notification belongs to
+ *         title:
+ *           type: string
+ *           description: Title of the notification
+ *         message:
+ *           type: string
+ *           description: Content of the notification
+ *         type:
+ *           type: string
+ *           description: Type of notification (info, action_assignment, deadline_soon, etc.)
+ *           default: info
+ *         read:
+ *           type: integer
+ *           description: Whether the notification has been read (0=unread, 1=read)
+ *           default: 0
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time when the notification was created
+ */
 class Notification {
   /**
    * Create a new notification

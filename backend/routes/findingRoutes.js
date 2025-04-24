@@ -4,23 +4,87 @@ const findingController = require('../controllers/findingController');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
- * @route   GET /api/findings/:id
- * @desc    Get finding by ID
- * @access  Private
+ * @swagger
+ * /api/findings/{id}:
+ *   get:
+ *     summary: Get finding by ID
+ *     tags: [Findings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Finding ID
+ *     responses:
+ *       200:
+ *         description: Finding details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Finding'
+ *       404:
+ *         description: Finding not found
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/:id', authenticateToken, findingController.getFindingById);
 
 /**
- * @route   PUT /api/findings/:id
- * @desc    Update finding
- * @access  Private
+ * @swagger
+ * /api/findings/{id}:
+ *   put:
+ *     summary: Update finding
+ *     tags: [Findings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Finding ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FindingInput'
+ *     responses:
+ *       200:
+ *         description: Updated finding
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Finding not found
  */
 router.put('/:id', authenticateToken, findingController.updateFinding);
 
 /**
- * @route   DELETE /api/findings/:id
- * @desc    Delete finding
- * @access  Private
+ * @swagger
+ * /api/findings/{id}:
+ *   delete:
+ *     summary: Delete finding
+ *     tags: [Findings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Finding ID
+ *     responses:
+ *       200:
+ *         description: Finding deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Finding not found
  */
 router.delete('/:id', authenticateToken, findingController.deleteFinding);
 

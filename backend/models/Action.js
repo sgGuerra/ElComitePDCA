@@ -1,6 +1,77 @@
 const { run, get, all } = require('../utils/database');
 const logger = require('../utils/logger');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Action:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The action ID
+ *         process_id:
+ *           type: integer
+ *           description: ID of the associated process
+ *         leader_id:
+ *           type: integer
+ *           description: ID of the action leader
+ *         name:
+ *           type: string
+ *           description: Name of the action
+ *         origin:
+ *           type: string
+ *           description: Where the action originated from
+ *         start_date:
+ *           type: string
+ *           format: date
+ *           description: When the action started
+ *         due_date:
+ *           type: string
+ *           format: date
+ *           description: When the action is due
+ *         goal:
+ *           type: string
+ *           description: Goal of the action
+ *         what:
+ *           type: string
+ *           description: What is to be done
+ *         why:
+ *           type: string
+ *           description: Why the action is needed
+ *         how:
+ *           type: string
+ *           description: How the action will be implemented
+ *         where:
+ *           type: string
+ *           description: Where the action will be implemented
+ *         status:
+ *           type: string
+ *           enum: [in_progress, completed, delayed, cancelled]
+ *           description: Current status of the action
+ *         type:
+ *           type: string
+ *           enum: [corrective, preventive, improvement]
+ *           description: Type of action
+ *         observations:
+ *           type: array
+ *           description: List of observations
+ *         files:
+ *           type: array
+ *           description: List of attached files
+ *         created_by:
+ *           type: integer
+ *           description: ID of user who created the action
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Creation timestamp
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Last update timestamp
+ */
 class Action {
   /**
    * Create a new improvement action

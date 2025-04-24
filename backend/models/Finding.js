@@ -1,6 +1,50 @@
 const { run, get, all } = require('../utils/database');
 const logger = require('../utils/logger');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Finding:
+ *       type: object
+ *       required:
+ *         - process_id
+ *         - description
+ *         - source
+ *         - created_by
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The auto-generated id of the finding
+ *         process_id:
+ *           type: integer
+ *           description: The id of the process this finding belongs to
+ *         description:
+ *           type: string
+ *           description: Detailed description of the finding
+ *         source:
+ *           type: string
+ *           description: Origin of the finding (e.g., 'audit', 'review', 'inspection')
+ *         discovery_date:
+ *           type: string
+ *           format: date-time
+ *           description: Date when the finding was discovered
+ *         status:
+ *           type: string
+ *           enum: [pending, in_progress, completed, cancelled]
+ *           description: Current status of the finding
+ *         created_by:
+ *           type: integer
+ *           description: ID of the user who created the finding
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Timestamp when the finding was created
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Timestamp when the finding was last updated
+ */
 class Finding {
   /**
    * Create a new finding

@@ -2,6 +2,43 @@ const bcrypt = require('bcryptjs');
 const { run, get, all } = require('../utils/database');
 const logger = require('../utils/logger');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       required:
+ *         - name
+ *         - email
+ *         - password
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The auto-generated user ID
+ *         name:
+ *           type: string
+ *           description: The user's name
+ *         email:
+ *           type: string
+ *           description: The user's email
+ *         password:
+ *           type: string
+ *           description: The user's password (hashed)
+ *         role:
+ *           type: string
+ *           description: The user's role
+ *           enum: [process_leader, admin]
+ *           default: process_leader
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: The timestamp when the user was created
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: The timestamp when the user was last updated
+ */
 class User {
   /**
    * Create a new user

@@ -1,6 +1,43 @@
 const { run, get, all } = require('../utils/database');
 const logger = require('../utils/logger');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Opportunity:
+ *       type: object
+ *       required:
+ *         - process_id
+ *         - description
+ *         - created_by
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The auto-generated ID of the opportunity
+ *         process_id:
+ *           type: integer
+ *           description: ID of the associated process
+ *         description:
+ *           type: string
+ *           description: Detailed description of the improvement opportunity
+ *         status:
+ *           type: string
+ *           enum: [pending, in_progress, completed, rejected]
+ *           default: pending
+ *           description: Current status of the opportunity
+ *         created_by:
+ *           type: integer
+ *           description: ID of the user who created the opportunity
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Timestamp when the opportunity was created
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Timestamp when the opportunity was last updated
+ */
 class Opportunity {
   /**
    * Create a new improvement opportunity

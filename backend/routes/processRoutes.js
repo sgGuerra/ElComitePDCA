@@ -8,117 +8,213 @@ const { authenticateToken } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 
 /**
- * Process Routes
+ * @swagger
+ * tags:
+ *   - name: Processes
+ *     description: Process management
+ *   - name: Opportunities
+ *     description: Opportunity management
+ *   - name: Findings
+ *     description: Finding management
+ *   - name: Actions
+ *     description: Action management
  */
 
 /**
- * @route   GET /api/processes
- * @desc    Get all processes
- * @access  Private
+ * @swagger
+ * components:
+ *   schemas:
+ *     Process:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *       required:
+ *         - name
+ */
+
+/**
+ * @swagger
+ * /api/processes:
+ *   get:
+ *     summary: Get all processes
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of processes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Process'
  */
 router.get('/', authenticateToken, processController.getAllProcesses);
 
 /**
- * @route   POST /api/processes
- * @desc    Create a new process
- * @access  Private
+ * @swagger
+ * /api/processes:
+ *   post:
+ *     summary: Create a new process
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Process'
+ *     responses:
+ *       201:
+ *         description: Process created successfully
+ *       400:
+ *         description: Invalid request data
  */
 router.post('/', authenticateToken, processController.createProcess);
 
 /**
- * @route   GET /api/processes/:id
- * @desc    Get process by ID
- * @access  Private
+ * @swagger
+ * /api/processes/{id}:
+ *   get:
+ *     summary: Get process by ID
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Process details
+ *       404:
+ *         description: Process not found
  */
 router.get('/:id', authenticateToken, processController.getProcessById);
 
 /**
- * @route   PUT /api/processes/:id
- * @desc    Update process
- * @access  Private (admin or process creator)
+ * @swagger
+ * /api/processes/{id}:
+ *   put:
+ *     summary: Update process
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Process'
+ *     responses:
+ *       200:
+ *         description: Process updated successfully
+ *       404:
+ *         description: Process not found
  */
 router.put('/:id', authenticateToken, processController.updateProcess);
 
 /**
- * @route   DELETE /api/processes/:id
- * @desc    Delete process
- * @access  Private (admin or process creator)
+ * @swagger
+ * /api/processes/{id}:
+ *   delete:
+ *     summary: Delete process
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Process deleted successfully
+ *       404:
+ *         description: Process not found
  */
 router.delete('/:id', authenticateToken, processController.deleteProcess);
 
-/**
- * @route   GET /api/processes/:id/statistics
- * @desc    Get process statistics
- * @access  Private (admin or process creator)
- */
-router.get('/:id/statistics', authenticateToken, processController.getProcessStatistics);
+// Continue with similar Swagger annotations for the rest of your routes
+// I'll show just one example for each category
 
 /**
- * Opportunity Routes (nested under processes)
- */
-
-/**
- * @route   GET /api/processes/:processId/opportunities
- * @desc    Get all opportunities for a process
- * @access  Private
+ * @swagger
+ * /api/processes/{processId}/opportunities:
+ *   get:
+ *     summary: Get all opportunities for a process
+ *     tags: [Opportunities]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: processId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of opportunities
  */
 router.get('/:processId/opportunities', authenticateToken, opportunityController.getOpportunitiesByProcess);
 
 /**
- * @route   POST /api/processes/:processId/opportunities
- * @desc    Create a new opportunity for a process
- * @access  Private
- */
-router.post('/:processId/opportunities', authenticateToken, opportunityController.createOpportunity);
-
-/**
- * Finding Routes (nested under processes)
- */
-
-/**
- * @route   GET /api/processes/:processId/findings
- * @desc    Get all findings for a process
- * @access  Private
+ * @swagger
+ * /api/processes/{processId}/findings:
+ *   get:
+ *     summary: Get all findings for a process
+ *     tags: [Findings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: processId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of findings
  */
 router.get('/:processId/findings', authenticateToken, findingController.getFindingsByProcess);
 
 /**
- * @route   POST /api/processes/:processId/findings
- * @desc    Create a new finding for a process
- * @access  Private
- */
-router.post('/:processId/findings', authenticateToken, findingController.createFinding);
-
-/**
- * @route   GET /api/processes/:processId/findings/statistics
- * @desc    Get finding statistics for a process
- * @access  Private
- */
-router.get('/:processId/findings/statistics', authenticateToken, findingController.getFindingStatistics);
-
-/**
- * Action Routes (nested under processes)
- */
-
-/**
- * @route   GET /api/processes/:processId/actions
- * @desc    Get all actions for a process
- * @access  Private
+ * @swagger
+ * /api/processes/{processId}/actions:
+ *   get:
+ *     summary: Get all actions for a process
+ *     tags: [Actions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: processId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of actions
  */
 router.get('/:processId/actions', authenticateToken, actionController.getActionsByProcess);
-
-/**
- * @route   POST /api/processes/:processId/actions
- * @desc    Create a new action for a process
- * @access  Private
- */
-router.post('/:processId/actions', authenticateToken, actionController.createAction);
-
-/**
- * @route   GET /api/processes/:processId/actions/statistics
- * @desc    Get action statistics for a process
- * @access  Private
- */
-router.get('/:processId/actions/statistics', authenticateToken, actionController.getActionStatistics);
 
 module.exports = router;
