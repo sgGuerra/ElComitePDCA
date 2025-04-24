@@ -1,273 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Header from '../components/Header';
+// frontend/src/components/Header.jsx
 
-const ProcessList = () => {
-  const [processes, setProcesses] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [newProcess, setNewProcess] = useState({ name: '', description: '' });
-  const [editProcess, setEditProcess] = useState(null);
-  const [errors, setErrors] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+import React, { useState, useEffect } from 'react';
+import { FaBell, FaCog, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import notificationService from '../services/notificationService';
+
+const Header = ({ activeTab, setActiveTab, tabs }) => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/processes', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
-      .then(res => res.json())
-      .then(data => setProcesses(data.data || []));
+    // Fetch unread notification count
+    const fetchUnreadCount = async () => {
+      try {
+        const count = await notificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Poll for new notifications every minute
+    const interval = setInterval(fetchUnreadCount, 60000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (editProcess) {
-      setEditProcess({ ...editProcess, [name]: value });
-    } else {
-      setNewProcess({ ...newProcess, [name]: value });
-    }
-    setErrors('');
-  };
-
-  const validateForm = () => {
-    const process = editProcess || newProcess;
-    if (!process.name.trim()) {
-      setErrors('El nombre es obligatorio.');
-      return false;
-    }
-    return true;
-  };
-
-  const handleAddProcess = async (e) => {
-    e.preventDefault();
-    setErrors('');
-    if (!validateForm()) return;
-
+  const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/processes', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(newProcess)
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setProcesses([...processes, data.data]);
-        setShowForm(false);
-        setNewProcess({ name: '', description: '' });
-        setSuccessMessage('¡Proceso creado exitosamente!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setErrors(data.message || 'Error al crear el proceso.');
-      }
+      const data = await notificationService.getUserNotifications({ limit: 5 });
+      setNotifications(data);
     } catch (error) {
-      setErrors('Error de red al crear el proceso.');
+      console.error('Error fetching notifications:', error);
     }
   };
 
-  const handleEditProcess = (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'Procesos') {
+      navigate('/procesos');
+    } else if (tab === 'Resumen') {
+      navigate('/dashboard');
+    } else if (tab === 'Admin Panel') {
+      navigate('/admin');
+    }
+  };
 
-    fetch(`http://localhost:5000/api/processes/${editProcess.id}`, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        name: editProcess.name,
-        description: editProcess.description
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          setProcesses(
-            processes.map((process) =>
-              process.id === editProcess.id ? { ...process, ...editProcess } : process
-            )
-          );
-          setEditProcess(null);
-          setShowEditForm(false);
-          setSuccessMessage('¡Proceso editado exitosamente!');
-          setTimeout(() => setSuccessMessage(''), 3000);
-        } else {
-          setErrors(data.message || 'Hubo un error al editar el proceso.');
-        }
-      })
-      .catch((error) => {
-        console.error('Error al editar el proceso:', error);
-        setErrors('Hubo un error al editar el proceso.');
-      });
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      fetchNotifications();
+    }
+  };
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, read: 1 } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(notifications.map(n => ({ ...n, read: 1 })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
-    <div className="min-h-screen bg-lightgray text-primary font-sans p-4 md:p-6 lg:p-8 space-y-6">
-      <Header
-        activeTab="Procesos"
-        setActiveTab={() => {}}
-        tabs={['Resumen', 'Procesos']}
-      />
-      <div className="bg-white p-6 rounded-xl shadow space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-primary">Lista de Procesos</h2>
+    <header className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm mb-6">
+      <nav className="flex space-x-2">
+        {tabs.map((tab) => (
           <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90"
+            key={tab}
+            onClick={() => handleTabClick(tab)}
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-150 ${
+              activeTab === tab ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
           >
-            Crear Proceso
+            {tab}
           </button>
-        </div>
+        ))}
+      </nav>
 
-        {successMessage && (
-          <div className="bg-green-100 text-green-700 px-4 py-2 rounded-md mb-4">
-            {successMessage}
-          </div>
-        )}
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-gray-200 rounded-lg">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Nombre</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Descripción</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {processes.map((process, index) => (
-                <tr
-                  key={process.id}
-                  className={`${
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  } hover:bg-gray-100 transition-colors`}
-                >
-                  <td className="py-3 px-4 text-gray-800">
-                    <Link
-                      to={`/procesos/${process.id}/acciones`}
-                      className="text-primary hover:underline"
-                    >
-                      {process.name}
-                    </Link>
-                  </td>
-                  <td className="py-3 px-4 text-gray-800">{process.description || ''}</td>
-                  <td className="py-3 px-4 space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditProcess(process);
-                        setShowEditForm(true);
-                      }}
-                      className="text-sm text-blue-500 hover:underline"
-                    >
-                      Editar
-                    </button>
-                    {/* Aquí puedes agregar el botón Eliminar si lo necesitas */}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Formulario para crear un nuevo proceso */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
-              <h3 className="text-lg font-semibold text-primary mb-4">Crear Proceso</h3>
-              <form onSubmit={handleAddProcess} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nombre del Proceso</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={newProcess.name}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border ${errors ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                  <input
-                    type="text"
-                    name="description"
-                    value={newProcess.description}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                  {errors && <p className="text-red-500 text-xs mt-1">{errors}</p>}
-                </div>
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                  >
-                    Crear
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Formulario para editar un proceso */}
-        {showEditForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md">
-              <h3 className="text-lg font-semibold text-primary mb-4">Editar Proceso</h3>
-              <form onSubmit={handleEditProcess} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nombre del Proceso</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={editProcess?.name || ''}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border ${errors ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                  <input
-                    type="text"
-                    name="description"
-                    value={editProcess?.description || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                  />
-                  {errors && <p className="text-red-500 text-xs mt-1">{errors}</p>}
-                </div>
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditForm(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                  >
-                    Guardar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+      <div className="absolute left-1/2 transform -translate-x-1/2">
+        <h1 className="text-3xl font-serif font-bold text-primary hidden md:block">El Comité</h1>
       </div>
-    </div>
+
+      <div className="flex items-center space-x-4">
+        {user?.role === 'admin' && (
+          <button
+            onClick={() => handleTabClick('Admin Panel')}
+            className="border border-primary text-primary px-3 py-1 rounded-md text-sm font-medium hover:bg-primary/10"
+          >
+            Admin Panel
+          </button>
+        )}
+        
+        <div className="relative">
+          <FaBell 
+            className="text-xl text-gray-600 hover:text-primary cursor-pointer" 
+            onClick={handleNotificationClick}
+          />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-white text-xs">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+          
+          {/* Notifications dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-20 border border-gray-200 max-h-96 overflow-y-auto">
+              <div className="p-3 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="font-medium">Notificaciones</h3>
+                {unreadCount > 0 && (
+                  <button 
+                    onClick={handleMarkAllAsRead}
+                    className="text-xs text-primary hover:text-primary/80"
+                  >
+                    Marcar todas como leídas
+                  </button>
+                )}
+              </div>
+              
+              <div className="divide-y divide-gray-200">
+                {notifications.length === 0 ? (
+                  <div className="py-4 px-3 text-center text-gray-500">
+                    No hay notificaciones
+                  </div>
+                ) : (
+                  notifications.map(notification => (
+                    <div 
+                      key={notification.id} 
+                      className={`p-3 hover:bg-gray-50 ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
+                    >
+                      <div className="flex justify-between">
+                        <p className="font-medium text-sm">{notification.title}</p>
+                        {!notification.read && (
+                          <button 
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            className="text-xs text-primary hover:text-primary/80"
+                          >
+                            Marcar como leída
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mt-1">{notification.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(notification.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <FaCog className="text-xl text-gray-600 hover:text-primary cursor-pointer" />
+        
+        <div className="relative">
+          <div className="flex items-center" onClick={() => setShowUserMenu(!showUserMenu)}>
+            <FaUserCircle className="text-3xl text-gray-400 hover:text-primary cursor-pointer" />
+          </div>
+          
+          {/* User dropdown menu */}
+          {showUserMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-gray-200">
+              <div className="p-3 border-b border-gray-200">
+                <p className="font-medium text-sm">{user?.name}</p>
+                <p className="text-xs text-gray-600">{user?.email}</p>
+                <p className="text-xs text-gray-600 mt-1 capitalize">{user?.role}</p>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+              >
+                <FaSignOutAlt className="text-gray-500" />
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 };
 
-export default ProcessList;
+export default Header;

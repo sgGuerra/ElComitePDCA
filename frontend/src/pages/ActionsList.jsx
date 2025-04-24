@@ -2,13 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { FaUserPlus, FaCalendarAlt } from 'react-icons/fa';
 import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
-
+import actionService from '../services/actionService';
+import userService from '../services/userService';
+import processService from '../services/processService';
+import { useAuth } from '../contexts/AuthContext';
 
 const Actions = () => {
   const { processId } = useParams();
   const [actionsData, setActionsData] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [processLeaders, setProcessLeaders] = useState([]);
+  const [processDetails, setProcessDetails] = useState(null);
+  const { user } = useAuth();
+
   const [newAction, setNewAction] = useState({
     nombre: '',
     lider: '',
@@ -26,7 +35,45 @@ const Actions = () => {
     atributoCalidad: '',
     estado: 'En proceso',
   });
+  
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    fetchActions();
+    fetchProcessLeaders();
+    fetchProcessDetails();
+  }, [processId]);
+
+  const fetchActions = async () => {
+    try {
+      setLoading(true);
+      const data = await actionService.getActionsByProcess(processId);
+      setActionsData(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching actions:', error);
+      setError('Error al cargar las acciones. Por favor, inténtelo de nuevo.');
+      setLoading(false);
+    }
+  };
+
+  const fetchProcessLeaders = async () => {
+    try {
+      const leaders = await userService.getProcessLeaders();
+      setProcessLeaders(leaders);
+    } catch (error) {
+      console.error('Error fetching process leaders:', error);
+    }
+  };
+
+  const fetchProcessDetails = async () => {
+    try {
+      const process = await processService.getProcess(processId);
+      setProcessDetails(process);
+    } catch (error) {
+      console.error('Error fetching process details:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -78,53 +125,68 @@ const Actions = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  useEffect(() => {
-    fetch(`http://localhost:5000/api/processes/${processId}/actions`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
-      .then(res => res.json())
-      .then(data => setActionsData(data.data));
-  }, []);
-
   const handleAddAction = async (e) => {
     e.preventDefault();
     setErrors({});
     if (!validateForm()) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/processes/${processId}/actions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          leader_id: newAction.lider,
-          name: newAction.nombre,
-          origin: newAction.origen,
-          start_date: newAction.fechaInicio,
-          due_date: newAction.fechaVencimiento,
-          goal: newAction.meta,
-          what: newAction.que,
-          why: newAction.porQue,
-          how: newAction.como,
-          location: newAction.donde,
-          status: newAction.estado,
-          type: newAction.tipoAccion
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setActionsData([...actionsData, data.data]);
+      setLoading(true);
+      
+      const actionData = {
+        leader_id: newAction.lider,
+        name: newAction.nombre,
+        origin: newAction.origen,
+        start_date: newAction.fechaInicio,
+        due_date: newAction.fechaVencimiento,
+        goal: newAction.meta,
+        what: newAction.que,
+        why: newAction.porQue,
+        how: newAction.como,
+        where: newAction.donde,
+        status: 'in_progress',
+        type: newAction.tipoAccion.toLowerCase()
+      };
+      
+      const response = await actionService.createAction(processId, actionData);
+      
+      if (response.success) {
+        setActionsData([...actionsData, response.data]);
         setShowForm(false);
         setSuccessMessage('¡Acción creada exitosamente!');
         setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setErrors(data.message || 'Error al crear la acción.');
+        
+        // Reset form
+        setNewAction({
+          nombre: '',
+          lider: '',
+          origen: '',
+          hallazgo: '',
+          fechaOrigen: '',
+          que: '',
+          porQue: '',
+          como: '',
+          meta: '',
+          tipoAccion: '',
+          donde: '',
+          fechaInicio: '',
+          fechaVencimiento: '',
+          atributoCalidad: '',
+          estado: 'En proceso',
+        });
       }
+      
+      setLoading(false);
     } catch (error) {
-      setErrors('Error de red al crear la acción.');
+      setLoading(false);
+      setError(error.message || 'Error al crear la acción.');
     }
+  };
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES');
   };
 
   return (
@@ -136,10 +198,16 @@ const Actions = () => {
       />
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-primary">Planes de Mejoramiento Continuo</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-primary">Planes de Mejoramiento Continuo</h2>
+            {processDetails && (
+              <p className="text-sm text-gray-600">Proceso: {processDetails.name}</p>
+            )}
+          </div>
           <button
             onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90"
+            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-70"
+            disabled={loading}
           >
             Crear Plan
           </button>
@@ -150,59 +218,83 @@ const Actions = () => {
             {successMessage}
           </div>
         )}
+        
+        {error && (
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded-md mb-4">
+            {error}
+          </div>
+        )}
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm border border-gray-200 rounded-lg">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Nombre</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Líder</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Origen</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Fecha Inicio</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Fecha Vencimiento</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Meta</th>
-                <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {actionsData.map((proceso, index) => (
-                <tr
-                  key={proceso.id}
-                  className={`${
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  } hover:bg-gray-100 transition-colors`}
-                >
-                  <td className="py-3 px-4 text-gray-800">
-                    <Link
-                      to={`/procesos/${proceso.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {proceso.nombre}
-                    </Link>
-                  </td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.lider}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.origen}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.fechaInicio}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.fechaVencimiento}</td>
-                  <td className="py-3 px-4 text-gray-800">{proceso.meta}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        proceso.estado === 'Completado'
-                          ? 'bg-green-100 text-green-700'
-                          : proceso.estado === 'En proceso'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {proceso.estado}
-                    </span>
-                  </td>
+        {loading && !actionsData.length ? (
+          <div className="py-8 flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm border border-gray-200 rounded-lg">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Nombre</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Líder</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Origen</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Fecha Inicio</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Fecha Vencimiento</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Meta</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b border-gray-200">Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {actionsData.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="py-4 px-4 text-center text-gray-500">
+                      No hay planes de mejoramiento disponibles
+                    </td>
+                  </tr>
+                ) : (
+                  actionsData.map((action, index) => (
+                    <tr
+                      key={action.id}
+                      className={`${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      } hover:bg-gray-100 transition-colors`}
+                    >
+                      <td className="py-3 px-4 text-gray-800">
+                        <Link
+                          to={`/procesos/${action.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {action.name}
+                        </Link>
+                      </td>
+                      <td className="py-3 px-4 text-gray-800">{action.leader_name}</td>
+                      <td className="py-3 px-4 text-gray-800">{action.origin}</td>
+                      <td className="py-3 px-4 text-gray-800">{formatDate(action.start_date)}</td>
+                      <td className="py-3 px-4 text-gray-800">{formatDate(action.due_date)}</td>
+                      <td className="py-3 px-4 text-gray-800">{action.goal}</td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            action.status === 'completed'
+                              ? 'bg-green-100 text-green-700'
+                              : action.status === 'in_progress'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {action.status === 'completed' ? 'Completado' : 
+                           action.status === 'in_progress' ? 'En proceso' : 
+                           action.status === 'delayed' ? 'Retrasado' : 
+                           action.status === 'cancelled' ? 'Cancelado' : 
+                           action.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -217,18 +309,24 @@ const Actions = () => {
                     value={newAction.nombre}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.nombre ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.nombre && <p className="text-red-500 text-xs mt-1">{errors.nombre}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Líder de proceso</label>
-                  <input
-                    type="text"
+                  <select
                     name="lider"
                     value={newAction.lider}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.lider ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
-                  />
+                    disabled={loading}
+                  >
+                    <option value="">Seleccionar líder</option>
+                    {processLeaders.map(leader => (
+                      <option key={leader.id} value={leader.id}>{leader.name}</option>
+                    ))}
+                  </select>
                   {errors.lider && <p className="text-red-500 text-xs mt-1">{errors.lider}</p>}
                 </div>
                 <div>
@@ -238,6 +336,7 @@ const Actions = () => {
                     value={newAction.origen}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.origen ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   >
                     <option value="">Seleccionar</option>
                     <option value="Auditorías Internas de Calidad">Auditorías Internas de Calidad</option>
@@ -258,6 +357,7 @@ const Actions = () => {
                     value={newAction.hallazgo}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.hallazgo ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.hallazgo && <p className="text-red-500 text-xs mt-1">{errors.hallazgo}</p>}
                 </div>
@@ -269,6 +369,7 @@ const Actions = () => {
                     value={newAction.fechaOrigen}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.fechaOrigen ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.fechaOrigen && <p className="text-red-500 text-xs mt-1">{errors.fechaOrigen}</p>}
                 </div>
@@ -280,6 +381,7 @@ const Actions = () => {
                     value={newAction.que}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.que ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.que && <p className="text-red-500 text-xs mt-1">{errors.que}</p>}
                 </div>
@@ -291,6 +393,7 @@ const Actions = () => {
                     value={newAction.porQue}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.porQue ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.porQue && <p className="text-red-500 text-xs mt-1">{errors.porQue}</p>}
                 </div>
@@ -302,6 +405,7 @@ const Actions = () => {
                     value={newAction.como}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.como ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.como && <p className="text-red-500 text-xs mt-1">{errors.como}</p>}
                 </div>
@@ -312,6 +416,7 @@ const Actions = () => {
                     value={newAction.meta}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.meta ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.meta && <p className="text-red-500 text-xs mt-1">{errors.meta}</p>}
                 </div>
@@ -322,11 +427,12 @@ const Actions = () => {
                     value={newAction.tipoAccion}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.tipoAccion ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   >
                     <option value="">Seleccionar</option>
-                    <option value="Preventiva">Preventiva</option>
-                    <option value="Correctiva">Correctiva</option>
-                    <option value="De mejoramiento">De mejoramiento</option>
+                    <option value="preventive">Preventiva</option>
+                    <option value="corrective">Correctiva</option>
+                    <option value="improvement">De mejoramiento</option>
                   </select>
                   {errors.tipoAccion && <p className="text-red-500 text-xs mt-1">{errors.tipoAccion}</p>}
                 </div>
@@ -338,6 +444,7 @@ const Actions = () => {
                     value={newAction.donde}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.donde ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.donde && <p className="text-red-500 text-xs mt-1">{errors.donde}</p>}
                 </div>
@@ -349,6 +456,7 @@ const Actions = () => {
                     value={newAction.fechaInicio}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.fechaInicio ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.fechaInicio && <p className="text-red-500 text-xs mt-1">{errors.fechaInicio}</p>}
                 </div>
@@ -360,6 +468,7 @@ const Actions = () => {
                     value={newAction.fechaVencimiento}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.fechaVencimiento ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   />
                   {errors.fechaVencimiento && <p className="text-red-500 text-xs mt-1">{errors.fechaVencimiento}</p>}
                 </div>
@@ -370,6 +479,7 @@ const Actions = () => {
                     value={newAction.atributoCalidad}
                     onChange={handleInputChange}
                     className={`w-full px-3 py-2 border ${errors.atributoCalidad ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-primary focus:border-primary`}
+                    disabled={loading}
                   >
                     <option value="">Seleccionar</option>
                     <option value="Accesibilidad">Accesibilidad</option>
@@ -388,14 +498,24 @@ const Actions = () => {
                     type="button"
                     onClick={() => setShowForm(false)}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                    disabled={loading}
                   >
                     Cerrar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-70"
+                    disabled={loading}
                   >
-                    Crear
+                    {loading ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creando...
+                      </span>
+                    ) : 'Crear'}
                   </button>
                 </div>
               </form>
