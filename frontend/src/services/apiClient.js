@@ -1,45 +1,46 @@
+// src/services/apiClient.js
+
 import axios from 'axios';
-import authService from './authService';
 
-const API_URL = 'http://localhost:5000/api';
+// Get API URL from environment variable or use default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-// Create axios instance with authentication
+// Create an Axios instance with default config
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 });
 
-// Add token to requests
+// Log the API URL for debugging
+console.log('API URL:', API_URL);
+
+// Add a request interceptor to include auth token in all requests
 apiClient.interceptors.request.use(
-  (config) => {
-    const token = authService.getToken();
+  config => {
+    const token = localStorage.getItem('token');
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  error => Promise.reject(error)
 );
 
-// Handle response
+// Add a response interceptor to handle auth errors
 apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      // Handle 401 Unauthorized - Token expired or invalid
-      if (error.response.status === 401) {
-        authService.logout();
-        window.location.href = '/login';
-        return Promise.reject(new Error('Sesión expirada. Por favor inicie sesión nuevamente.'));
-      }
+  response => response,
+  error => {
+    // Handle 401 Unauthorized errors (token expired or invalid)
+    if (error.response && error.response.status === 401) {
+      // Clear auth data from local storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       
-      // Return the error message from the API if available
-      if (error.response.data && error.response.data.message) {
-        return Promise.reject(new Error(error.response.data.message));
+      // Redirect to login page if not already there
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
       }
     }
     
@@ -47,4 +48,6 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Export API_URL for use in other files
+export { API_URL };
 export default apiClient;

@@ -1,209 +1,343 @@
-// frontend/src/components/Header.jsx
+// src/pages/ProcessList.jsx
 
 import React, { useState, useEffect } from 'react';
-import { FaBell, FaCog, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { FaPlus, FaSearch, FaFilter, FaSortAmountDown, FaSortAmountUp } from 'react-icons/fa';
+import Header from '../components/Header';
+import LoadingOverlay from '../components/LoadingOverlay';
+import ProcessManagement from '../components/ProcessManagement';
+import processService from '../services/processService';
+import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
-import notificationService from '../services/notificationService';
 
-const Header = ({ activeTab, setActiveTab, tabs }) => {
+const ProcessList = () => {
+  const [activeTab, setActiveTab] = useState('Procesos');
+  const [processes, setProcesses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [showManagement, setShowManagement] = useState(false);
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [filterStatus, setFilterStatus] = useState('all');
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { error: showError } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Fetch unread notification count
-    const fetchUnreadCount = async () => {
-      try {
-        const count = await notificationService.getUnreadCount();
-        setUnreadCount(count);
-      } catch (error) {
-        console.error('Error fetching notification count:', error);
-      }
-    };
+    if (!showManagement) {
+      fetchProcesses();
+    }
+  }, [showManagement]);
 
-    fetchUnreadCount();
-    
-    // Poll for new notifications every minute
-    const interval = setInterval(fetchUnreadCount, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchNotifications = async () => {
+  const fetchProcesses = async () => {
+    setLoading(true);
     try {
-      const data = await notificationService.getUserNotifications({ limit: 5 });
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+      const data = await processService.getAllProcesses();
+      setProcesses(data);
+    } catch (err) {
+      console.error('Error al cargar los procesos:', err);
+      setError('Error al cargar los procesos.');
+      showError('Error al cargar los procesos');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleTabClick = (tab) => {
+  const filteredProcesses = processes.filter((p) => {
+    // Apply status filter
+    if (filterStatus !== 'all' && p.status !== filterStatus) {
+      return false;
+    }
+    
+    // Apply search filter
+    return (
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
+      (p.owner && p.owner.toLowerCase().includes(search.toLowerCase()))
+    );
+  });
+
+  // Sort processes
+  const sortedProcesses = [...filteredProcesses].sort((a, b) => {
+    let compareA = a[sortField] || '';
+    let compareB = b[sortField] || '';
+    
+    if (typeof compareA === 'string') compareA = compareA.toLowerCase();
+    if (typeof compareB === 'string') compareB = compareB.toLowerCase();
+    
+    if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1;
+    if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const toggleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === 'Procesos') {
-      navigate('/procesos');
-    } else if (tab === 'Resumen') {
-      navigate('/dashboard');
-    } else if (tab === 'Admin Panel') {
-      navigate('/admin');
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'active': return 'Activo';
+      case 'inactive': return 'Inactivo';
+      case 'pending': return 'Pendiente';
+      case 'completed': return 'Completado';
+      default: return status;
     }
   };
 
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
-    if (!showNotifications) {
-      fetchNotifications();
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleMarkAsRead = async (id) => {
-    try {
-      await notificationService.markAsRead(id);
-      setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: 1 } : n
-      ));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+  const getPriorityLabel = (priority) => {
+    switch (priority) {
+      case 'high': return 'Alta';
+      case 'medium': return 'Media';
+      case 'low': return 'Baja';
+      default: return priority;
     }
   };
 
-  const handleMarkAllAsRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      setNotifications(notifications.map(n => ({ ...n, read: 1 })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-blue-100 text-blue-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const handleLogout = () => {
-    logout();
   };
 
   return (
-    <header className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm mb-6">
-      <nav className="flex space-x-2">
-        {tabs.map((tab) => (
+    <div className="min-h-screen bg-lightgray text-primary font-sans p-4 md:p-6 lg:p-8 space-y-6">
+      <Header
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        tabs={['Resumen', 'Procesos']}
+      />
+      
+      <LoadingOverlay loading={loading} />
+      
+      {showManagement ? (
+        <div className="space-y-4">
           <button
-            key={tab}
-            onClick={() => handleTabClick(tab)}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors duration-150 ${
-              activeTab === tab ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
+            onClick={() => setShowManagement(false)}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 flex items-center gap-2"
           >
-            {tab}
+            <span>← Volver a la lista de procesos</span>
           </button>
-        ))}
-      </nav>
-
-      <div className="absolute left-1/2 transform -translate-x-1/2">
-        <h1 className="text-3xl font-serif font-bold text-primary hidden md:block">El Comité</h1>
-      </div>
-
-      <div className="flex items-center space-x-4">
-        {user?.role === 'admin' && (
-          <button
-            onClick={() => handleTabClick('Admin Panel')}
-            className="border border-primary text-primary px-3 py-1 rounded-md text-sm font-medium hover:bg-primary/10"
-          >
-            Admin Panel
-          </button>
-        )}
-        
-        <div className="relative">
-          <FaBell 
-            className="text-xl text-gray-600 hover:text-primary cursor-pointer" 
-            onClick={handleNotificationClick}
-          />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-white text-xs">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-          
-          {/* Notifications dropdown */}
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-20 border border-gray-200 max-h-96 overflow-y-auto">
-              <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="font-medium">Notificaciones</h3>
-                {unreadCount > 0 && (
-                  <button 
-                    onClick={handleMarkAllAsRead}
-                    className="text-xs text-primary hover:text-primary/80"
-                  >
-                    Marcar todas como leídas
-                  </button>
-                )}
+          <ProcessManagement />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="bg-white p-6 rounded-xl shadow">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <h1 className="text-2xl font-bold text-primary">Procesos</h1>
+              
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => setShowManagement(true)}
+                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center gap-2"
+                >
+                  <FaPlus className="text-sm" />
+                  <span>Gestionar Procesos</span>
+                </button>
+              )}
+            </div>
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+              <div className="w-full md:w-64 relative">
+                <input
+                  type="text"
+                  placeholder="Buscar proceso..."
+                  className="w-full pl-10 pr-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <FaSearch className="absolute left-3 top-2.5 text-gray-400" />
               </div>
               
-              <div className="divide-y divide-gray-200">
-                {notifications.length === 0 ? (
-                  <div className="py-4 px-3 text-center text-gray-500">
-                    No hay notificaciones
-                  </div>
-                ) : (
-                  notifications.map(notification => (
-                    <div 
-                      key={notification.id} 
-                      className={`p-3 hover:bg-gray-50 ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
-                    >
-                      <div className="flex justify-between">
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        {!notification.read && (
-                          <button 
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="text-xs text-primary hover:text-primary/80"
-                          >
-                            Marcar como leída
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-700 mt-1">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(notification.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                )}
+              <div className="flex flex-wrap gap-2">
+                <div className="relative">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="pl-9 pr-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
+                  >
+                    <option value="all">Todos los estados</option>
+                    <option value="active">Activos</option>
+                    <option value="inactive">Inactivos</option>
+                    <option value="pending">Pendientes</option>
+                    <option value="completed">Completados</option>
+                  </select>
+                  <FaFilter className="absolute left-3 top-2.5 text-gray-400" />
+                </div>
               </div>
             </div>
-          )}
-        </div>
-        
-        <FaCog className="text-xl text-gray-600 hover:text-primary cursor-pointer" />
-        
-        <div className="relative">
-          <div className="flex items-center" onClick={() => setShowUserMenu(!showUserMenu)}>
-            <FaUserCircle className="text-3xl text-gray-400 hover:text-primary cursor-pointer" />
+            
+            {error ? (
+              <div className="bg-red-100 p-4 rounded-lg text-red-700">
+                {error}
+              </div>
+            ) : filteredProcesses.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No se encontraron procesos. {search && 'Intente con otra búsqueda.'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white rounded shadow">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th 
+                        onClick={() => toggleSort('name')}
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200"
+                      >
+                        <div className="flex items-center">
+                          <span>Nombre</span>
+                          {sortField === 'name' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 text-left">Descripción</th>
+                      <th 
+                        onClick={() => toggleSort('owner')}
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200"
+                      >
+                        <div className="flex items-center">
+                          <span>Responsable</span>
+                          {sortField === 'owner' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => toggleSort('status')}
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200"
+                      >
+                        <div className="flex items-center">
+                          <span>Estado</span>
+                          {sortField === 'status' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => toggleSort('priority')}
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-gray-200"
+                      >
+                        <div className="flex items-center">
+                          <span>Prioridad</span>
+                          {sortField === 'priority' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 text-left">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedProcesses.map((process) => (
+                      <tr key={process.id} className="hover:bg-gray-50 border-t border-gray-200">
+                        <td className="py-3 px-4 font-medium">{process.name}</td>
+                        <td className="py-3 px-4">
+                          <div className="max-w-xs line-clamp-2 text-sm text-gray-700">
+                            {process.description || '-'}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">{process.owner || '-'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(process.status)}`}>
+                            {getStatusLabel(process.status || 'active')}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {process.priority && (
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColor(process.priority)}`}>
+                              {getPriorityLabel(process.priority)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              className="px-3 py-1 bg-primary text-white text-sm rounded hover:bg-primary/90"
+                              onClick={() => navigate(`/procesos/${process.id}/acciones`)}
+                            >
+                              Ver Acciones
+                            </button>
+                            <button
+                              className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+                              onClick={() => navigate(`/procesos/${process.id}/estadisticas`)}
+                            >
+                              Estadísticas
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
           
-          {/* User dropdown menu */}
-          {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-gray-200">
-              <div className="p-3 border-b border-gray-200">
-                <p className="font-medium text-sm">{user?.name}</p>
-                <p className="text-xs text-gray-600">{user?.email}</p>
-                <p className="text-xs text-gray-600 mt-1 capitalize">{user?.role}</p>
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h2 className="text-lg font-semibold text-primary mb-4">Resumen de Procesos</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Total de Procesos</p>
+                <p className="text-2xl font-bold">{processes.length}</p>
               </div>
-              <button 
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-              >
-                <FaSignOutAlt className="text-gray-500" />
-                Cerrar sesión
-              </button>
+              
+              <div className="bg-gradient-to-r from-green-100 to-green-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Procesos Activos</p>
+                <p className="text-2xl font-bold">
+                  {processes.filter(p => p.status === 'active').length}
+                </p>
+              </div>
+              
+              <div className="bg-gradient-to-r from-orange-100 to-orange-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Procesos Pendientes</p>
+                <p className="text-2xl font-bold">
+                  {processes.filter(p => p.status === 'pending').length}
+                </p>
+              </div>
             </div>
-          )}
+            
+            <div className="mt-6">
+              <p className="text-sm text-gray-600">
+                Se recomienda revisar regularmente los procesos pendientes y asegurarse de que todos los procesos tengan acciones asociadas para un seguimiento efectivo.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-    </header>
+      )}
+    </div>
   );
 };
 
-export default Header;
+export default ProcessList;

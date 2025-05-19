@@ -1,30 +1,28 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingOverlay from './LoadingOverlay';
 
 const ProtectedRoute = ({ adminOnly = false }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
-  // Show loading state
+  // Show loading while checking authentication
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingOverlay loading={true} message="Verificando autenticación..." />;
   }
 
-  // Check if the user is authenticated
+  // If not authenticated, redirect to login
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if admin route and user is admin
+  // If route requires admin privilege and user is not admin
   if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Render the protected component
+  // If authenticated, render the child routes
   return <Outlet />;
 };
 

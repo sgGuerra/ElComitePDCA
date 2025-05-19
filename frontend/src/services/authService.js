@@ -1,17 +1,7 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api';
-
-// Create axios instance for auth
-const authAxios = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import apiClient from './apiClient';
 
 // Intercept responses to handle errors
-authAxios.interceptors.response.use(
+apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
@@ -26,14 +16,31 @@ authAxios.interceptors.response.use(
 const authService = {
   login: async (email, password) => {
     try {
-      const response = await authAxios.post('/auth/login', { email, password });
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Create a FormData object to match OAuth2PasswordRequestForm expected by FastAPI
+      const formData = new URLSearchParams();
+      formData.append('username', email);  // FastAPI OAuth2 expects 'username', not 'email'
+      formData.append('password', password);
+      
+      const response = await apiClient.post('/auth/login', formData.toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
+        // Create user object from token data
+        const user = {
+          id: response.data.user_id,
+          role: response.data.user_role,
+          // Additional properties can be fetched via /auth/me if needed
+        };
+        localStorage.setItem('user', JSON.stringify(user));
       }
       return response.data;
     } catch (error) {
-      throw error.response?.data?.message || 'Error durante el inicio de sesión';
+      console.error('Login error:', error);
+      throw error.response?.data?.detail || 'Error durante el inicio de sesión';
     }
   },
 

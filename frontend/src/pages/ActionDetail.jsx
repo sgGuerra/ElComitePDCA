@@ -1,341 +1,779 @@
+// src/pages/ActionDetail.jsx
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
+import { 
+  FaArrowLeft, FaEdit, FaRegClock, FaRegUser, FaRegFileAlt, 
+  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt, FaComment
+} from 'react-icons/fa';
 import actionService from '../services/actionService';
+import fileService from '../services/fileService';
+import userService from '../services/userService';
+import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 const ActionDetail = () => {
-  const { actionId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const { processId, actionId } = useParams();
   const [action, setAction] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [observaciones, setObservaciones] = useState([]);
-  const [nuevaObservacion, setNuevaObservacion] = useState('');
-  const [archivos, setArchivos] = useState([]);
+  const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [actionForm, setActionForm] = useState({
+    name: '',
+    leader_id: '',
+    status: 'pending',
+    target_date: '',
+    what: '',
+    why: '',
+    how: '',
+    priority: 'medium'
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [files, setFiles] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [userOptions, setUserOptions] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  
+  const { success, error: showError } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchActionDetails();
+    fetchActionData();
+    fetchUserOptions();
   }, [actionId]);
 
-  const fetchActionDetails = async () => {
+  const fetchActionData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await actionService.getAction(actionId);
-      setAction(data);
-      setObservaciones(data.observations || []);
-      setArchivos(data.files || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching action details:', error);
-      setError('Error al cargar los detalles de la acción. Por favor, inténtelo de nuevo.');
+      // Fetch action details, files, comments, and history in parallel
+      const [actionData, filesData, commentsData, historyData] = await Promise.all([
+        actionService.getActionById(actionId),
+        fileService.getActionFiles(actionId),
+        actionService.getActionComments(actionId),
+        actionService.getActionHistory(actionId)
+      ]);
+      
+      setAction(actionData);
+      setFiles(filesData || []);
+      setComments(commentsData || []);
+      setHistory(historyData || []);
+      
+      // Initialize form with action data
+      setActionForm({
+        name: actionData.name || '',
+        leader_id: actionData.leader_id || '',
+        status: actionData.status || 'pending',
+        target_date: actionData.target_date ? actionData.target_date.substring(0, 10) : '',
+        what: actionData.what || '',
+        why: actionData.why || '',
+        how: actionData.how || '',
+        priority: actionData.priority || 'medium'
+      });
+    } catch (err) {
+      console.error('Error fetching action details:', err);
+      setError('Error al cargar los detalles de la acción.');
+      showError('Error al cargar los detalles de la acción');
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleAddObservacion = async () => {
-    if (!nuevaObservacion.trim()) {
+  const fetchUserOptions = async () => {
+    try {
+      const users = await userService.getProcessLeaders();
+      setUserOptions(users);
+    } catch (err) {
+      console.error('Error fetching user options:', err);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setActionForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!actionForm.name) errors.name = 'El nombre es obligatorio';
+    if (!actionForm.what) errors.what = 'El campo "Qué" es obligatorio';
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
-
+    
+    setLoading(true);
     try {
-      const updatedObservaciones = [...observaciones, { text: nuevaObservacion }];
-      setObservaciones(updatedObservaciones);
-      setNuevaObservacion('');
-
-      await actionService.updateAction(actionId, {
-        observations: updatedObservaciones,
-        files: archivos
-      });
-    } catch (error) {
-      console.error('Error adding observation:', error);
-      setError('Error al agregar la observación. Por favor, inténtelo de nuevo.');
+      const response = await actionService.updateAction(actionId, actionForm);
+      
+      if (response.success || response.data) {
+        setAction({
+          ...action,
+          ...actionForm,
+          leader_name: userOptions.find(u => u.id === actionForm.leader_id)?.name || action.leader_name
+        });
+        success('Acción actualizada exitosamente');
+        setEditing(false);
+      }
+    } catch (err) {
+      console.error('Error updating action:', err);
+      showError('Error al actualizar la acción');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleStatusChange = async (newStatus) => {
+    setLoading(true);
+    try {
+      const comment = `Status changed to "${getStatusLabel(newStatus)}" by ${user.name}`;
+      const response = await actionService.updateActionStatus(actionId, newStatus, comment);
+      
+      if (response.success || response.data) {
+        setAction({
+          ...action,
+          status: newStatus
+        });
+        success(`Estado actualizado a ${getStatusLabel(newStatus)}`);
+        
+        // Refresh comments and history
+        const [commentsData, historyData] = await Promise.all([
+          actionService.getActionComments(actionId),
+          actionService.getActionHistory(actionId)
+        ]);
+        
+        setComments(commentsData || []);
+        setHistory(historyData || []);
+      }
+    } catch (err) {
+      console.error('Error updating action status:', err);
+      showError('Error al actualizar el estado');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
+    if (!file) return;
+    
+    setSelectedFile(file);
+    setUploadingFile(true);
+    
+    try {
+      const response = await fileService.uploadFile(actionId, file);
+      
+      if (response.success || response.data) {
+        const newFile = response.data || response;
+        setFiles([...files, newFile]);
+        success('Archivo subido exitosamente');
+      }
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      showError('Error al subir el archivo');
+    } finally {
+      setUploadingFile(false);
+      setSelectedFile(null);
     }
   };
 
-  const handleFileUpload = async () => {
-    if (!selectedFile) {
+  const handleFileDelete = async (fileId) => {
+    if (!window.confirm('¿Está seguro de eliminar este archivo?')) {
       return;
     }
-
+    
+    setLoading(true);
     try {
-      setUploading(true);
-      const response = await actionService.uploadFile(actionId, selectedFile);
+      const response = await fileService.deleteFile(actionId, fileId);
       
-      // Add the new file to the list
-      const updatedArchivos = [...archivos, response.data.name];
-      setArchivos(updatedArchivos);
+      if (response.success) {
+        setFiles(files.filter(f => f.id !== fileId));
+        success('Archivo eliminado exitosamente');
+      }
+    } catch (err) {
+      console.error('Error deleting file:', err);
+      showError('Error al eliminar el archivo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    
+    setLoading(true);
+    try {
+      const response = await actionService.addActionComment(actionId, newComment);
       
-      // Update the action with the new file list
-      await actionService.updateAction(actionId, {
-        observations: observaciones,
-        files: updatedArchivos
-      });
-      
-      setSelectedFile(null);
-      setUploading(false);
-      
-      // Reset file input
-      document.getElementById('file-upload').value = '';
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      setError('Error al subir el archivo. Por favor, inténtelo de nuevo.');
-      setUploading(false);
+      if (response.success || response.data) {
+        const commentData = response.data || response;
+        setComments([...comments, commentData]);
+        setNewComment('');
+        success('Comentario agregado exitosamente');
+      }
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      showError('Error al agregar el comentario');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pending': return 'Pendiente';
+      case 'in_progress': return 'En progreso';
+      case 'completed': return 'Completada';
+      case 'canceled': return 'Cancelada';
+      case 'overdue': return 'Vencida';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-200 text-yellow-800';
+      case 'in_progress': return 'bg-blue-200 text-blue-800';
+      case 'completed': return 'bg-green-200 text-green-800';
+      case 'canceled': return 'bg-red-200 text-red-800';
+      case 'overdue': return 'bg-orange-200 text-orange-800';
+      default: return 'bg-gray-200 text-gray-800';
+    }
+  };
+
+  const getPriorityLabel = (priority) => {
+    switch (priority) {
+      case 'high': return 'Alta';
+      case 'medium': return 'Media';
+      case 'low': return 'Baja';
+      default: return priority;
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-blue-100 text-blue-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES');
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'delayed':
-        return 'bg-orange-100 text-orange-700';
-      case 'cancelled':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const getTranslatedStatus = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'Completado';
-      case 'in_progress':
-        return 'En proceso';
-      case 'delayed':
-        return 'Retrasado';
-      case 'cancelled':
-        return 'Cancelado';
-      default:
-        return status;
-    }
+  const canEdit = () => {
+    if (!user || !action) return false;
+    return user.role === 'admin' || user.id === action.leader_id;
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-lightgray flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-lightgray text-primary font-sans p-4 md:p-6 lg:p-8">
-        <Header 
-          activeTab="Procesos" 
-          setActiveTab={() => {}} 
-          tabs={['Resumen', 'Procesos']} 
-        />
-        <div className="bg-white p-6 rounded-xl shadow text-center">
-          <p className="text-red-500 text-lg">{error}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-          >
-            Volver
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!action) {
-    return (
-      <div className="min-h-screen bg-lightgray text-primary font-sans p-4 md:p-6 lg:p-8">
-        <Header 
-          activeTab="Procesos" 
-          setActiveTab={() => {}} 
-          tabs={['Resumen', 'Procesos']} 
-        />
-        <div className="bg-white p-6 rounded-xl shadow text-center">
-          <p className="text-lg">No se encontró la acción solicitada</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-          >
-            Volver
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-lightgray text-primary font-sans p-4 md:p-6 lg:p-8 space-y-6">
-      <Header
-        activeTab="Procesos"
-        setActiveTab={() => {}}
-        tabs={['Resumen', 'Procesos']}
-      />
-      <div className="bg-white p-6 rounded-xl shadow space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-primary">{action.name}</h1>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusClass(action.status)}`}
+      <LoadingOverlay loading={loading} />
+      
+      <div className="mb-4">
+        <button
+          className="flex items-center text-primary hover:underline"
+          onClick={() => navigate(`/procesos/${processId}/acciones`)}
+        >
+          <FaArrowLeft className="mr-2" />
+          Volver a la lista de acciones
+        </button>
+      </div>
+      
+      {error ? (
+        <div className="bg-red-100 p-6 rounded-lg text-red-700">
+          <p>{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+            onClick={() => navigate(`/procesos/${processId}/acciones`)}
           >
-            {getTranslatedStatus(action.status)}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">Líder</h2>
-              <p className="text-gray-800">{action.leader_name}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">Origen</h2>
-              <p className="text-gray-800">{action.origin}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">Fecha de Inicio</h2>
-              <p className="text-gray-800">{formatDate(action.start_date)}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">Fecha de Vencimiento</h2>
-              <p className="text-gray-800">{formatDate(action.due_date)}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">Tipo de Acción</h2>
-              <p className="text-gray-800 capitalize">{action.type}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">Meta</h2>
-              <p className="text-gray-800">{action.goal}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">¿Qué?</h2>
-              <p className="text-gray-800">{action.what}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">¿Por qué?</h2>
-              <p className="text-gray-800">{action.why}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">¿Cómo?</h2>
-              <p className="text-gray-800">{action.how}</p>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-700">¿Dónde?</h2>
-              <p className="text-gray-800">{action.where || action.location}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Observaciones */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-primary mb-4">Observaciones</h2>
-          {observaciones.length === 0 ? (
-            <p className="text-gray-500 italic">No hay observaciones registradas</p>
-          ) : (
-            <ul className="space-y-3">
-              {observaciones.map((obs, index) => (
-                <li key={index} className="p-3 bg-gray-50 rounded-md">
-                  <p className="text-gray-800">{obs.text}</p>
-                  {obs.timestamp && (
-                    <p className="text-xs text-gray-500 mt-1">{new Date(obs.timestamp).toLocaleString()}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          
-          <div className="mt-4">
-            <textarea
-              value={nuevaObservacion}
-              onChange={(e) => setNuevaObservacion(e.target.value)}
-              placeholder="Añadir una nueva observación"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-              rows={3}
-            />
-            <button
-              onClick={handleAddObservacion}
-              className="mt-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-70"
-              disabled={!nuevaObservacion.trim()}
-            >
-              Añadir Observación
-            </button>
-          </div>
-        </div>
-
-        {/* Archivos Adjuntos */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-primary mb-4">Archivos Adjuntos</h2>
-          {archivos.length === 0 ? (
-            <p className="text-gray-500 italic">No hay archivos adjuntos</p>
-          ) : (
-            <ul className="space-y-2">
-              {archivos.map((file, index) => (
-                <li key={index} className="flex items-center space-x-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-gray-800">{file}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          
-          <div className="mt-4">
-            <div className="flex items-center space-x-2">
-              <input
-                id="file-upload"
-                type="file"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                disabled={uploading}
-              />
-              <button
-                onClick={handleFileUpload}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-70"
-                disabled={!selectedFile || uploading}
-              >
-                {uploading ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Subiendo...
-                  </span>
-                ) : 'Subir Archivo'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-          >
-            Volver
+            Volver a la lista
           </button>
         </div>
-      </div>
+      ) : action ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main content - Action details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Action header */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+                {!editing ? (
+                  <h1 className="text-2xl font-bold text-primary">{action.name}</h1>
+                ) : (
+                  <input
+                    type="text"
+                    name="name"
+                    value={actionForm.name}
+                    onChange={handleInputChange}
+                    className={`text-2xl font-bold bg-gray-50 border rounded-md px-3 py-2 w-full ${
+                      formErrors.name ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Nombre de la acción"
+                  />
+                )}
+                
+                {canEdit() && !editing && (
+                  <button 
+                    onClick={() => setEditing(true)}
+                    className="flex items-center text-primary hover:text-primary/80"
+                  >
+                    <FaEdit className="mr-1" />
+                    Editar
+                  </button>
+                )}
+              </div>
+              
+              {formErrors.name && (
+                <p className="text-red-500 text-sm mb-2">{formErrors.name}</p>
+              )}
+              
+              <div className="flex flex-wrap gap-3 mb-6">
+                <span className={`px-3 py-1 inline-flex items-center text-sm font-semibold rounded-full ${getStatusColor(action.status)}`}>
+                  {getStatusLabel(action.status)}
+                </span>
+                
+                {action.priority && (
+                  <span className={`px-3 py-1 inline-flex items-center text-sm font-semibold rounded-full ${getPriorityColor(action.priority)}`}>
+                    Prioridad: {getPriorityLabel(action.priority)}
+                  </span>
+                )}
+                
+                {action.target_date && (
+                  <span className="px-3 py-1 inline-flex items-center text-sm font-semibold rounded-full bg-gray-200 text-gray-700">
+                    <FaRegClock className="mr-1" />
+                    {formatDate(action.target_date)}
+                  </span>
+                )}
+              </div>
+              
+              {!editing ? (
+                <div className="flex items-center text-gray-600 mb-4">
+                  <FaRegUser className="mr-2" />
+                  <span>Responsable: {action.leader_name || 'No asignado'}</span>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+                  <select
+                    name="leader_id"
+                    value={actionForm.leader_id}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                  >
+                    <option value="">Seleccionar responsable</option>
+                    {userOptions.map(user => (
+                      <option key={user.id} value={user.id}>{user.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {editing && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha objetivo</label>
+                  <input
+                    type="date"
+                    name="target_date"
+                    value={actionForm.target_date}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                  />
+                </div>
+              )}
+              
+              {editing && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <select
+                    name="status"
+                    value={actionForm.status}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                  >
+                    <option value="pending">Pendiente</option>
+                    <option value="in_progress">En progreso</option>
+                    <option value="completed">Completada</option>
+                    <option value="canceled">Cancelada</option>
+                  </select>
+                </div>
+              )}
+              
+              {editing && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+                  <select
+                    name="priority"
+                    value={actionForm.priority}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                  >
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                  </select>
+                </div>
+              )}
+              
+              {editing && (
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Action details */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-xl font-semibold text-primary mb-4">Detalles de la Acción</h2>
+              
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2">¿Qué?</h3>
+                  {!editing ? (
+                    <p className="text-gray-700 whitespace-pre-line">{action.what || 'Sin información'}</p>
+                  ) : (
+                    <div>
+                      <textarea
+                        name="what"
+                        value={actionForm.what}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className={`w-full border rounded-md px-3 py-2 bg-gray-50 ${
+                          formErrors.what ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                        placeholder="Descripción de la acción"
+                      />
+                      {formErrors.what && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.what}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2">¿Por qué?</h3>
+                  {!editing ? (
+                    <p className="text-gray-700 whitespace-pre-line">{action.why || 'Sin información'}</p>
+                  ) : (
+                    <textarea
+                      name="why"
+                      value={actionForm.why}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                      placeholder="Justificación de la acción"
+                    />
+                  )}
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2">¿Cómo?</h3>
+                  {!editing ? (
+                    <p className="text-gray-700 whitespace-pre-line">{action.how || 'Sin información'}</p>
+                  ) : (
+                    <textarea
+                      name="how"
+                      value={actionForm.how}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+                      placeholder="Método de implementación"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Action files */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-primary">Archivos Adjuntos</h2>
+                
+                {canEdit() && (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="file-upload"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={uploadingFile}
+                    />
+                    <label 
+                      htmlFor="file-upload"
+                      className="flex items-center px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 cursor-pointer"
+                    >
+                      <FaUpload className="mr-2" />
+                      {uploadingFile ? 'Subiendo...' : 'Subir Archivo'}
+                    </label>
+                  </div>
+                )}
+              </div>
+              
+              {selectedFile && (
+                <div className="mb-4 p-2 bg-blue-50 rounded-md border border-blue-200">
+                  <p className="text-sm text-blue-700">
+                    Subiendo: {selectedFile.name} ({Math.round(selectedFile.size/1024)} KB)
+                  </p>
+                </div>
+              )}
+              
+              {files.length === 0 ? (
+                <p className="text-gray-500 italic">No hay archivos adjuntos.</p>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {files.map(file => (
+                    <li key={file.id} className="py-3 flex justify-between items-center">
+                      <div className="flex items-center">
+                        <FaRegFileAlt className="text-gray-400 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{file.filename}</p>
+                          <p className="text-xs text-gray-500">
+                            {file.size ? `${Math.round(file.size/1024)} KB` : ''} • 
+                            {file.uploaded_at ? ` Subido el ${formatDate(file.uploaded_at)}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <a
+                          href={fileService.getFileUrl(actionId, file.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-blue-600 hover:text-blue-800"
+                        >
+                          <FaDownload />
+                        </a>
+                        
+                        {canEdit() && (
+                          <button
+                            onClick={() => handleFileDelete(file.id)}
+                            className="p-2 text-red-600 hover:text-red-800"
+                          >
+                            <FaTrashAlt />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            
+            {/* Comments section */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-xl font-semibold text-primary mb-4">Comentarios</h2>
+              
+              <div className="mb-6">
+                <form onSubmit={handleAddComment} className="flex items-start space-x-2">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Agregar un comentario..."
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                    rows="2"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newComment.trim()}
+                    className={`px-4 py-2 rounded-md ${
+                      newComment.trim() 
+                        ? 'bg-primary text-white hover:bg-primary/90' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <FaComment className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
+              
+              {comments.length === 0 ? (
+                <p className="text-gray-500 italic">No hay comentarios aún.</p>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map(comment => (
+                    <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 bg-primary/80 rounded-full flex items-center justify-center text-white font-medium">
+                            {comment.user_name?.charAt(0) || 'U'}
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-900">{comment.user_name || 'Usuario'}</p>
+                            <p className="text-xs text-gray-500">{formatDateTime(comment.created_at)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-gray-700">{comment.comment}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Action controls */}
+            {!editing && canEdit() && (
+              <div className="bg-white rounded-xl shadow p-6">
+                <h2 className="text-lg font-semibold text-primary mb-4">Cambiar Estado</h2>
+                
+                <div className="space-y-2">
+                  {action.status !== 'pending' && (
+                    <button
+                      onClick={() => handleStatusChange('pending')}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-md hover:bg-yellow-200"
+                    >
+                      Marcar como Pendiente
+                    </button>
+                  )}
+                  
+                  {action.status !== 'in_progress' && (
+                    <button
+                      onClick={() => handleStatusChange('in_progress')}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-800 border border-blue-200 rounded-md hover:bg-blue-200"
+                    >
+                      Marcar en Progreso
+                    </button>
+                  )}
+                  
+                  {action.status !== 'completed' && (
+                    <button
+                      onClick={() => handleStatusChange('completed')}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-green-100 text-green-800 border border-green-200 rounded-md hover:bg-green-200"
+                    >
+                      <FaCheck className="mr-2" />
+                      Marcar como Completada
+                    </button>
+                  )}
+                  
+                  {action.status !== 'canceled' && (
+                    <button
+                      onClick={() => handleStatusChange('canceled')}
+                      className="w-full flex items-center justify-center px-4 py-2 bg-red-100 text-red-800 border border-red-200 rounded-md hover:bg-red-200"
+                    >
+                      <FaTimes className="mr-2" />
+                      Cancelar Acción
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Action details summary */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Información de la Acción</h2>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500">Fecha de creación</p>
+                  <p className="font-medium">{formatDate(action.created_at)}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Última actualización</p>
+                  <p className="font-medium">{formatDate(action.updated_at)}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Creado por</p>
+                  <p className="font-medium">{action.created_by_name || 'Desconocido'}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">ID de la acción</p>
+                  <p className="font-medium">{action.id}</p>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-500">Proceso</p>
+                  <p className="font-medium">{action.process_name || 'Desconocido'}</p>
+                </div>
+              </div>
+              
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="text-primary hover:underline text-sm flex items-center"
+                >
+                  {showHistory ? 'Ocultar historial' : 'Ver historial de cambios'}
+                </button>
+                
+                {showHistory && history.length > 0 && (
+                  <div className="mt-3 space-y-3 text-sm">
+                    {history.map((entry, index) => (
+                      <div key={index} className="border-l-2 border-gray-200 pl-3">
+                        <p className="text-gray-700">{entry.description}</p>
+                        <p className="text-gray-500 text-xs">
+                          {formatDateTime(entry.created_at)} - {entry.user_name || 'Sistema'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {showHistory && history.length === 0 && (
+                  <p className="mt-3 text-gray-500 text-sm italic">No hay registros de cambios.</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Related actions */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Acciones Relacionadas</h2>
+              
+              <p className="text-gray-500 italic">No hay acciones relacionadas.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
