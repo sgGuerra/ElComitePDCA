@@ -12,7 +12,7 @@ const statisticsService = {
    */
   getDashboardStatistics: async (params = {}) => {
     try {
-      const response = await apiClient.get('/statistics/dashboard', { params });
+      const response = await apiClient.get('/api/statistics/dashboard', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching dashboard statistics:', error);
@@ -27,7 +27,7 @@ const statisticsService = {
    */
   getProcessStatistics: async (processId, params = {}) => {
     try {
-      const response = await apiClient.get(`/processes/${processId}/statistics`, { params });
+      const response = await apiClient.get(`/api/processes/${processId}/statistics`, { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching statistics for process ${processId}:`, error);
@@ -42,7 +42,7 @@ const statisticsService = {
    */
   getActionsByStatus: async (params = {}) => {
     try {
-      const response = await apiClient.get('/statistics/actions-by-status', { params });
+      const response = await apiClient.get('/api/statistics/actions-by-status', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching actions by status:', error);
@@ -57,7 +57,7 @@ const statisticsService = {
    */
   getActionsByType: async (params = {}) => {
     try {
-      const response = await apiClient.get('/statistics/actions-by-type', { params });
+      const response = await apiClient.get('/api/statistics/actions-by-type', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching actions by type:', error);
@@ -72,7 +72,7 @@ const statisticsService = {
    */
   getCompletionRate: async (params = {}) => {
     try {
-      const response = await apiClient.get('/statistics/completion-rate', { params });
+      const response = await apiClient.get('/api/statistics/completion-rate', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching completion rate:', error);
@@ -87,7 +87,7 @@ const statisticsService = {
    */
   getUpcomingDeadlines: async (params = {}) => {
     try {
-      const response = await apiClient.get('/statistics/upcoming-deadlines', { params });
+      const response = await apiClient.get('/api/statistics/upcoming-deadlines', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching upcoming deadlines:', error);
@@ -102,7 +102,7 @@ const statisticsService = {
    */
   getActionsOverTime: async (params = {}) => {
     try {
-      const response = await apiClient.get('/statistics/actions-over-time', { params });
+      const response = await apiClient.get('/api/statistics/actions-over-time', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching trends data:', error);
@@ -117,7 +117,7 @@ const statisticsService = {
    */
   getPerformanceIndicators: async (params = {}) => {
     try {
-      const response = await apiClient.get('/actions/performance-indicators', { params });
+      const response = await apiClient.get('/api/actions/performance-indicators', { params });
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching performance indicators:', error);

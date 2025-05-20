@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FaUser, FaKey, FaBell, FaEnvelope, FaCheck, 
-  FaUserCog, FaHistory, FaSignOutAlt, FaCamera 
+  FaUserCog, FaHistory, FaSignOutAlt, FaCamera, FaExclamationTriangle 
 } from 'react-icons/fa';
 import Header from '../components/Header';
 import LoadingOverlay from '../components/LoadingOverlay';
+import RequestDeactivationModal from '../components/RequestDeactivationModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import userService from '../services/userService';
@@ -42,6 +43,7 @@ const UserProfile = () => {
   const [formErrors, setFormErrors] = useState({});
   const [recentActivities, setRecentActivities] = useState([]);
   const [assignedActions, setAssignedActions] = useState([]);
+  const [showDeactivationModal, setShowDeactivationModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -361,6 +363,21 @@ const UserProfile = () => {
                   <FaHistory className="mr-3" />
                   <span>Actividad Reciente</span>
                 </button>
+                
+                {/* Only show deactivation option for non-admin users */}
+                {(!user?.roles?.includes("admin") || user?.roles?.length > 1) && (
+                  <button
+                    onClick={() => setActiveTab('deactivation')}
+                    className={`w-full flex items-center px-3 py-2 rounded-md text-sm font-medium ${
+                      activeTab === 'deactivation' 
+                        ? 'bg-red-500 text-white' 
+                        : 'text-red-600 hover:bg-red-50'
+                    }`}
+                  >
+                    <FaSignOutAlt className="mr-3" />
+                    <span>Solicitar Desactivación</span>
+                  </button>
+                )}
               </nav>
             </div>
             
@@ -747,8 +764,44 @@ const UserProfile = () => {
               </div>
             </div>
           )}
+          
+          {/* Deactivation Section */}
+          {activeTab === 'deactivation' && (
+            <div className="bg-white rounded-xl shadow p-6">
+              <h2 className="text-xl font-semibold text-red-600 mb-6 flex items-center">
+                <FaExclamationTriangle className="mr-2" />
+                <span>Solicitar Desactivación de Cuenta</span>
+              </h2>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-red-800">
+                  <strong>Advertencia:</strong> Solicitar la desactivación de tu cuenta es un proceso que requiere 
+                  aprobación administrativa. Un administrador deberá revisar tu solicitud y transferir tus procesos asignados
+                  a otros líderes antes de aprobar la desactivación.
+                </p>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Si deseas solicitar la desactivación de tu cuenta, haz clic en el botón a continuación. 
+                Se te pedirá que proporciones un motivo para la solicitud.
+              </p>
+              
+              <button
+                onClick={() => setShowDeactivationModal(true)}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+              >
+                Solicitar Desactivación
+              </button>
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* Deactivation Request Modal */}
+      <RequestDeactivationModal 
+        isOpen={showDeactivationModal}
+        onClose={() => setShowDeactivationModal(false)}
+      />
     </div>
   );
 };

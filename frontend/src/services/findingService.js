@@ -12,9 +12,9 @@ const findingService = {
    * @param {number} processId - Process ID
    * @returns {Promise} Promise with findings data
    */
-  getFindingsByProcess: async (processId) => {
+  getFindingsByProcess: async (processId) => {w
     try {
-      const response = await apiClient.get(`/processes/${processId}/findings`, {
+      const response = await apiClient.get(`/api/processes/${processId}/findings`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`
         }
@@ -33,7 +33,7 @@ const findingService = {
    */
   getFindingById: async (id) => {
     try {
-      const response = await apiClient.get(`/findings/${id}`, {
+      const response = await apiClient.get(`/api/findings/${id}`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`
         }
@@ -52,7 +52,7 @@ const findingService = {
    */
   createFinding: async (findingData) => {
     try {
-      const response = await apiClient.post('/findings', findingData, {
+      const response = await apiClient.post('/api/findings', findingData, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
@@ -73,7 +73,7 @@ const findingService = {
    */
   updateFinding: async (id, findingData) => {
     try {
-      const response = await apiClient.put(`/findings/${id}`, findingData, {
+      const response = await apiClient.put(`/api/findings/${id}`, findingData, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
@@ -93,7 +93,7 @@ const findingService = {
    */
   deleteFinding: async (id) => {
     try {
-      const response = await apiClient.delete(`/findings/${id}`, {
+      const response = await apiClient.delete(`/api/findings/${id}`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`
         }

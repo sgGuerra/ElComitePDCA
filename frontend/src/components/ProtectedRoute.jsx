@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from './LoadingOverlay';
 
-const ProtectedRoute = ({ adminOnly = false }) => {
+const ProtectedRoute = ({ adminOnly = false, roleRequired = null }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -17,12 +17,17 @@ const ProtectedRoute = ({ adminOnly = false }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If route requires admin privilege and user is not admin
+  // If route requires admin privilege and user is not admin (legacy support)
   if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If authenticated, render the child routes
+  // If route requires a specific role
+  if (roleRequired && user.role !== roleRequired) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // If authenticated and has the required role, render the child routes
   return <Outlet />;
 };
 

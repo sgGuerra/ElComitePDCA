@@ -162,3 +162,20 @@ async def get_process_statistics(process_id: int) -> Dict[str, int]:
             "pending_actions": 0,
             "overdue_actions": 0
         }
+
+
+async def get_processes_by_leader(leader_id: int) -> List[Dict[str, Any]]:
+    """Get all processes assigned to a leader."""
+    try:
+        query = """
+            SELECT p.* 
+            FROM processes p
+            INNER JOIN process_leaders pl ON p.id = pl.process_id 
+            WHERE pl.leader_id = ?
+            ORDER BY p.created_at DESC
+        """
+        processes = await get_all(query, (leader_id,))
+        return processes
+    except Exception as e:
+        logger.error(f"Error getting processes by leader: {str(e)}")
+        return []

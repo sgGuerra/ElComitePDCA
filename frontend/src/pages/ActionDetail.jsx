@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   FaArrowLeft, FaEdit, FaRegClock, FaRegUser, FaRegFileAlt, 
-  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt, FaComment
+  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt, FaHistory, FaComment
 } from 'react-icons/fa';
 import actionService from '../services/actionService';
 import fileService from '../services/fileService';
@@ -12,6 +12,8 @@ import userService from '../services/userService';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
+import ResourceManager from '../components/ResourceManager';
+import CommentSection from '../components/CommentSection';
 
 const ActionDetail = () => {
   const { processId, actionId } = useParams();
@@ -35,7 +37,6 @@ const ActionDetail = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [userOptions, setUserOptions] = useState([]);
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   
@@ -208,28 +209,6 @@ const ActionDetail = () => {
     } catch (err) {
       console.error('Error deleting file:', err);
       showError('Error al eliminar el archivo');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    
-    setLoading(true);
-    try {
-      const response = await actionService.addActionComment(actionId, newComment);
-      
-      if (response.success || response.data) {
-        const commentData = response.data || response;
-        setComments([...comments, commentData]);
-        setNewComment('');
-        success('Comentario agregado exitosamente');
-      }
-    } catch (err) {
-      console.error('Error adding comment:', err);
-      showError('Error al agregar el comentario');
     } finally {
       setLoading(false);
     }
@@ -605,56 +584,16 @@ const ActionDetail = () => {
             </div>
             
             {/* Comments section */}
-            <div className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-xl font-semibold text-primary mb-4">Comentarios</h2>
-              
-              <div className="mb-6">
-                <form onSubmit={handleAddComment} className="flex items-start space-x-2">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Agregar un comentario..."
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                    rows="2"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newComment.trim()}
-                    className={`px-4 py-2 rounded-md ${
-                      newComment.trim() 
-                        ? 'bg-primary text-white hover:bg-primary/90' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    <FaComment className="w-4 h-4" />
-                  </button>
-                </form>
-              </div>
-              
-              {comments.length === 0 ? (
-                <p className="text-gray-500 italic">No hay comentarios aún.</p>
-              ) : (
-                <div className="space-y-4">
-                  {comments.map(comment => (
-                    <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center">
-                          <div className="h-8 w-8 bg-primary/80 rounded-full flex items-center justify-center text-white font-medium">
-                            {comment.user_name?.charAt(0) || 'U'}
-                          </div>
-                          <div className="ml-3">
-                            <p className="text-sm font-medium text-gray-900">{comment.user_name || 'Usuario'}</p>
-                            <p className="text-xs text-gray-500">{formatDateTime(comment.created_at)}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <p className="text-gray-700">{comment.comment}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <CommentSection 
+              entityId={actionId}
+              entityType="action"
+              comments={comments}
+              setComments={setComments}
+              fetchComments={async () => {
+                const commentsData = await actionService.getActionComments(actionId);
+                setComments(commentsData || []);
+              }}
+            />
             </div>
           </div>
           

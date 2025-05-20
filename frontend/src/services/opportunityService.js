@@ -14,7 +14,7 @@ const opportunityService = {
    */
   getOpportunitiesByProcess: async (processId) => {
     try {
-      const response = await apiClient.get(`/processes/${processId}/opportunities`, {
+      const response = await apiClient.get(`/api/processes/${processId}/opportunities`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`
         }
@@ -33,7 +33,7 @@ const opportunityService = {
    */
   getOpportunityById: async (id) => {
     try {
-      const response = await apiClient.get(`/opportunities/${id}`, {
+      const response = await apiClient.get(`/api/opportunities/${id}`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`
         }
@@ -52,7 +52,7 @@ const opportunityService = {
    */
   createOpportunity: async (opportunityData) => {
     try {
-      const response = await apiClient.post('/opportunities', opportunityData, {
+      const response = await apiClient.post('/api/opportunities', opportunityData, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
@@ -73,7 +73,7 @@ const opportunityService = {
    */
   updateOpportunity: async (id, opportunityData) => {
     try {
-      const response = await apiClient.put(`/opportunities/${id}`, opportunityData, {
+      const response = await apiClient.put(`/api/opportunities/${id}`, opportunityData, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
@@ -93,7 +93,7 @@ const opportunityService = {
    */
   deleteOpportunity: async (id) => {
     try {
-      const response = await apiClient.delete(`/opportunities/${id}`, {
+      const response = await apiClient.delete(`/api/opportunities/${id}`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`
         }

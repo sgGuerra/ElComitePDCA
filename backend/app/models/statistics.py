@@ -109,37 +109,54 @@ async def get_actions_by_status(
             date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
         
         # Add process filter
-        process_filter = f"AND process_id = {process_id}" if process_id else ""
+        query_params = []
         
         # Query for counts
-        counts = await get_all(
-            f"""
+        query = """
             SELECT status, COUNT(*) as count
             FROM actions
-            WHERE 1=1 {process_filter} {date_filter}
-            GROUP BY status
-            """
-        )
+            WHERE 1=1
+        """
+        
+        if process_id:
+            query += " AND process_id = ?"
+            query_params.append(process_id)
+            
+        if date_filter:
+            query += f" {date_filter}"
+            
+        query += " GROUP BY status"
+        
+        counts = await get_all(query, tuple(query_params))
         
         # If we need to include the actions, get them for each status
         if include_actions:
             for status_item in counts:
                 status = status_item["status"]
                 
-                actions = await get_all(
-                    f"""
+                # Get actions for this status
+                query = """
                     SELECT a.*, 
                            u1.name as leader_name,
                            p.name as process_name
                     FROM actions a
                     LEFT JOIN users u1 ON a.leader_id = u1.id
                     LEFT JOIN processes p ON a.process_id = p.id
-                    WHERE a.status = ? {process_filter} {date_filter}
-                    ORDER BY a.updated_at DESC
-                    LIMIT ?
-                    """,
-                    (status, limit)
-                )
+                    WHERE a.status = ?
+                """
+                action_params = [status]
+                
+                if process_id:
+                    query += " AND a.process_id = ?"
+                    action_params.append(process_id)
+                    
+                if date_filter:
+                    query += f" {date_filter}"
+                    
+                query += " ORDER BY a.updated_at DESC LIMIT ?"
+                action_params.append(limit)
+                
+                actions = await get_all(query, tuple(action_params))
                 
                 status_item["actions"] = actions
         
@@ -177,12 +194,10 @@ async def get_upcoming_deadlines(
         elif date_range == "year":
             date_filter = "AND target_date <= date('now', '+1 year')"
         
-        # Add process filter
-        process_filter = f"AND process_id = {process_id}" if process_id else ""
+        # Build query with proper parameterization
+        query_params = [limit]  # Start with limit as a parameter
         
-        # Get upcoming deadlines
-        actions = await get_all(
-            f"""
+        query = """
             SELECT a.*, 
                    u1.name as leader_name,
                    p.name as process_name
@@ -192,13 +207,19 @@ async def get_upcoming_deadlines(
             WHERE a.status NOT IN ('completed', 'canceled')
             AND a.target_date IS NOT NULL
             AND a.target_date >= date('now')
-            {date_filter}
-            {process_filter}
-            ORDER BY a.target_date ASC
-            LIMIT ?
-            """,
-            (limit,)
-        )
+        """
+        
+        if date_filter:
+            query += f" {date_filter}"
+            
+        if process_id:
+            query += " AND a.process_id = ?"
+            query_params.insert(0, process_id)  # Insert process_id before limit
+            
+        query += " ORDER BY a.target_date ASC LIMIT ?"
+        
+        # Get upcoming deadlines with proper parameters
+        actions = await get_all(query, tuple(query_params))
         
         return actions
     except Exception as e:
@@ -232,26 +253,40 @@ async def get_completion_rate(
         elif date_range == "year":
             date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
         
-        # Add process filter
-        process_filter = f"AND process_id = {process_id}" if process_id else ""
+        # Query with proper parameterization
+        query_params = []
         
         # Get total count
-        total = await get_one(
-            f"""
+        total_query = """
             SELECT COUNT(*) as count
             FROM actions
-            WHERE 1=1 {process_filter} {date_filter}
-            """
-        )
+            WHERE 1=1
+        """
         
-        # Get completed count
-        completed = await get_one(
-            f"""
+        if process_id:
+            total_query += " AND process_id = ?"
+            query_params.append(process_id)
+            
+        if date_filter:
+            total_query += f" {date_filter}"
+        
+        total = await get_one(total_query, tuple(query_params))
+        
+        # Get completed count - reuse the same parameters
+        completed_query = """
             SELECT COUNT(*) as count
             FROM actions
-            WHERE status = 'completed' {process_filter} {date_filter}
-            """
-        )
+            WHERE status = 'completed'
+        """
+        
+        if process_id:
+            completed_query += " AND process_id = ?"
+            # We reuse the same parameters as before
+            
+        if date_filter:
+            completed_query += f" {date_filter}"
+        
+        completed = await get_one(completed_query, tuple(query_params))
         
         # Calculate completion rate
         total_count = total["count"] if total else 0
@@ -320,41 +355,49 @@ async def get_actions_over_time(
                 if month not in date_series:
                     date_series.append(month)
         
-        # Add process filter
-        process_filter = f"AND process_id = {process_id}" if process_id else ""
+        # Set up query parameters
+        params = []
+        process_condition = ""
+        
+        if process_id:
+            process_condition = "AND process_id = ?"
+            params.append(process_id)
         
         # Get action counts by date and status
         completed_by_date = await get_all(
             f"""
             SELECT {group_by} as date, COUNT(*) as count
             FROM actions
-            WHERE status = 'completed' {process_filter}
+            WHERE status = 'completed' {process_condition}
             AND created_at >= date('now', '-{days} days')
             GROUP BY date
             ORDER BY date
-            """
+            """,
+            tuple(params)
         )
         
         pending_by_date = await get_all(
             f"""
             SELECT {group_by} as date, COUNT(*) as count
             FROM actions
-            WHERE status IN ('pending', 'in_progress') {process_filter}
+            WHERE status IN ('pending', 'in_progress') {process_condition}
             AND created_at >= date('now', '-{days} days')
             GROUP BY date
             ORDER BY date
-            """
+            """,
+            tuple(params)
         )
         
         overdue_by_date = await get_all(
             f"""
             SELECT {group_by} as date, COUNT(*) as count
             FROM actions
-            WHERE status = 'overdue' {process_filter}
+            WHERE status = 'overdue' {process_condition}
             AND created_at >= date('now', '-{days} days')
             GROUP BY date
             ORDER BY date
-            """
+            """,
+            tuple(params)
         )
         
         # Convert to dictionaries for faster lookup

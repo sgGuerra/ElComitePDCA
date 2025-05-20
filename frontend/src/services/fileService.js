@@ -12,7 +12,7 @@ const fileService = {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await apiClient.post(`/actions/${actionId}/files`, formData, {
+      const response = await apiClient.post(`/api/actions/${actionId}/files`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -30,7 +30,7 @@ const fileService = {
    */
   getActionFiles: async (actionId) => {
     try {
-      const response = await apiClient.get(`/actions/${actionId}/files`);
+      const response = await apiClient.get(`/api/actions/${actionId}/files`);
       return response.data.data;
     } catch (error) {
       throw error;
@@ -45,7 +45,7 @@ const fileService = {
    */
   deleteFile: async (actionId, fileId) => {
     try {
-      const response = await apiClient.delete(`/actions/${actionId}/files/${fileId}`);
+      const response = await apiClient.delete(`/api/actions/${actionId}/files/${fileId}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -59,7 +59,7 @@ const fileService = {
    * @returns {string} File download URL
    */
   getFileUrl: (actionId, fileId) => {
-    return `${apiClient.defaults.baseURL}/actions/${actionId}/files/${fileId}/download`;
+    return `${apiClient.defaults.baseURL}/api/actions/${actionId}/files/${fileId}/download`;
   },
   
   /**
@@ -69,7 +69,7 @@ const fileService = {
    * @returns {string} File preview URL
    */
   getFilePreviewUrl: (actionId, fileId) => {
-    return `${apiClient.defaults.baseURL}/actions/${actionId}/files/${fileId}/preview`;
+    return `${apiClient.defaults.baseURL}/api/actions/${actionId}/files/${fileId}/preview`;
   }
 };
 

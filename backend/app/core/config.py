@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Roles
     ROLE_ADMIN: str = "admin"
     ROLE_PROCESS_LEADER: str = "process_leader"
+    ROLE_AUDITOR: str = "auditor"
     
     # File upload settings
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")

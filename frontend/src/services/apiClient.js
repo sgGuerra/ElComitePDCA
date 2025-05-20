@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // Get API URL from environment variable or use default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create an Axios instance with default config
 const apiClient = axios.create({
@@ -12,9 +12,6 @@ const apiClient = axios.create({
     'Content-Type': 'application/json'
   }
 });
-
-// Log the API URL for debugging
-console.log('API URL:', API_URL);
 
 // Add a request interceptor to include auth token in all requests
 apiClient.interceptors.request.use(

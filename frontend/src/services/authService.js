@@ -21,7 +21,7 @@ const authService = {
       formData.append('username', email);  // FastAPI OAuth2 expects 'username', not 'email'
       formData.append('password', password);
       
-      const response = await apiClient.post('/auth/login', formData.toString(), {
+      const response = await apiClient.post('/api/auth/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -32,8 +32,10 @@ const authService = {
         // Create user object from token data
         const user = {
           id: response.data.user_id,
-          role: response.data.user_role,
-          // Additional properties can be fetched via /auth/me if needed
+          role: response.data.active_role, // Active role
+          roles: response.data.user_roles, // All available roles
+          name: response.data.name || '',
+          email: email
         };
         localStorage.setItem('user', JSON.stringify(user));
       }
@@ -65,6 +67,31 @@ const authService = {
 
   updateCurrentUser: (userData) => {
     localStorage.setItem('user', JSON.stringify(userData));
+  },
+  
+  switchRole: async (role) => {
+    try {
+      const response = await apiClient.post('/api/auth/switch-role', { role });
+      
+      if (response.data.access_token) {
+        localStorage.setItem('token', response.data.access_token);
+        
+        // Update the user object with new active role
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          const updatedUser = {
+            ...currentUser,
+            role: role // This is the active role
+          };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          return updatedUser;
+        }
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Role switch error:', error);
+      throw error.response?.data?.detail || 'Error al cambiar de rol';
+    }
   }
 };
 

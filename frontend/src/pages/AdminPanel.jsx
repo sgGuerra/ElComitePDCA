@@ -1,11 +1,13 @@
 // src/pages/AdminPanel.jsx
 
 import React, { useState } from 'react';
-import { FaUsers, FaCog, FaProjectDiagram, FaChartBar, FaDatabase, FaFileAlt } from 'react-icons/fa';
+import { FaUsers, FaCog, FaProjectDiagram, FaChartBar, FaDatabase, FaFileAlt, FaUserSlash, FaClipboardCheck } from 'react-icons/fa';
 import Header from '../components/Header';
 import UserManagement from '../components/UserManagement';
 import ProcessManagement from '../components/ProcessManagement';
 import ConfigurationManagement from '../components/ConfigurationManagement';
+import DeactivationRequests from '../components/DeactivationRequests';
+import AuditManagement from '../components/AuditManagement';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 
@@ -145,6 +147,8 @@ const AdminPanel = () => {
     { id: 'dashboard', label: 'Dashboard', icon: <FaChartBar /> },
     { id: 'users', label: 'Usuarios', icon: <FaUsers /> },
     { id: 'processes', label: 'Procesos', icon: <FaProjectDiagram /> },
+    { id: 'deactivation', label: 'Solicitudes de Desactivación', icon: <FaUserSlash /> },
+    { id: 'audits', label: 'Auditorías', icon: <FaClipboardCheck /> },
     { id: 'configuration', label: 'Configuración', icon: <FaCog /> }
   ];
 
@@ -192,6 +196,8 @@ const AdminPanel = () => {
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'users' && <UserManagement />}
           {activeTab === 'processes' && <ProcessManagement />}
+          {activeTab === 'deactivation' && <DeactivationRequests />}
+          {activeTab === 'audits' && <AuditManagement />}
           {activeTab === 'configuration' && <ConfigurationManagement />}
         </div>
       </div>

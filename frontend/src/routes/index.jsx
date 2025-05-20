@@ -14,6 +14,7 @@ import ActionsList from '../pages/ActionsList';
 import ActionDetail from '../pages/ActionDetail';
 import ProcessStatistics from '../pages/ProcessStatistics';
 import AdminPanel from '../pages/AdminPanel';
+import AuditorPanel from '../pages/AuditorPanel';
 import NotFound from '../pages/NotFound';
 import UserProfile from '../pages/UserProfile';
 
@@ -41,9 +42,14 @@ const AppRoutes = () => {
       </Route>
 
       {/* Admin routes - require admin role */}
-      <Route element={<ProtectedRoute adminOnly={true} />}>
+      <Route element={<ProtectedRoute roleRequired="admin" />}>
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/:section" element={<AdminPanel />} />
+      </Route>
+
+      {/* Auditor routes - require auditor role */}
+      <Route element={<ProtectedRoute roleRequired="auditor" />}>
+        <Route path="/auditor" element={<AuditorPanel />} />
       </Route>
 
       {/* Fallback route for 404 */}

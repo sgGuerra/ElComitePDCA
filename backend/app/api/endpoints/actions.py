@@ -1,10 +1,13 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
-from pydantic import parse_obj_as
 import json
+import logging
 
 from app.core.auth import get_current_user
 from app.core.config import settings
+
+# Set up logger
+logger = logging.getLogger(__name__)
 from app.models.action import (
     get_action_by_id,
     get_actions_by_process,
@@ -18,6 +21,12 @@ from app.models.action import (
 from app.models.process import get_process_by_id
 from app.middleware.upload import save_upload, delete_file
 from app.schemas.action import Action, ActionCreate, ActionUpdate, ActionStatistics
+from app.models.resource import (
+    add_resource_to_action,
+    get_action_resources,
+    get_resource_by_id,
+    delete_action_resource
+)
 
 router = APIRouter()
 
@@ -452,3 +461,132 @@ async def delete_action_by_id(
     success = await delete_action(action_id)
     
     return {"success": success, "message": "Acción eliminada correctamente"}
+
+
+@router.post("/{action_id}/files", response_model=dict)
+async def upload_file_to_action(
+    action_id: int,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Upload a file to an action.
+    """
+    action = await get_action_by_id(action_id)
+    if not action:
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
+    is_admin = current_user["role"] == settings.ROLE_ADMIN
+    is_process_owner = current_user["id"] == action.get("created_by")
+    is_action_leader = current_user["id"] == action.get("leader_id")
+    if not (is_admin or is_process_owner or is_action_leader):
+        raise HTTPException(status_code=403, detail="No tienes permisos para subir archivos a esta acción")
+    try:
+        resource = await add_resource_to_action(action_id, file, current_user["id"])
+        return {"success": True, "data": resource, "message": "Archivo subido correctamente"}
+    except Exception as e:
+        logger.error(f"Error uploading file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al subir el archivo: {str(e)}")
+
+
+@router.get("/{action_id}/files", response_model=dict)
+async def get_action_files(
+    action_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get all files for an action.
+    """
+    action = await get_action_by_id(action_id)
+    if not action:
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
+    is_admin = current_user["role"] == settings.ROLE_ADMIN
+    is_process_owner = current_user["id"] == action.get("created_by")
+    is_action_leader = current_user["id"] == action.get("leader_id")
+    if not (is_admin or is_process_owner or is_action_leader):
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver los archivos de esta acción")
+    files = await get_action_resources(action_id)
+    return {"success": True, "data": files, "message": "Archivos obtenidos correctamente"}
+
+
+@router.delete("/{action_id}/files/{file_id}", response_model=dict)
+async def delete_action_file(
+    action_id: int,
+    file_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Delete a file from an action.
+    """
+    action = await get_action_by_id(action_id)
+    if not action:
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
+    is_admin = current_user["role"] == settings.ROLE_ADMIN
+    is_process_owner = current_user["id"] == action.get("created_by")
+    is_action_leader = current_user["id"] == action.get("leader_id")
+    if not (is_admin or is_process_owner or is_action_leader):
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar archivos de esta acción")
+    resource = await get_resource_by_id(file_id)
+    if not resource or resource["action_id"] != action_id:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    await delete_action_resource(file_id)
+    return {"success": True, "message": "Archivo eliminado correctamente"}
+
+
+@router.get("/{action_id}/files/{file_id}/download")
+async def download_action_file(
+    action_id: int,
+    file_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Download a file from an action.
+    """
+    action = await get_action_by_id(action_id)
+    if not action:
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
+    is_admin = current_user["role"] == settings.ROLE_ADMIN
+    is_process_owner = current_user["id"] == action.get("created_by")
+    is_action_leader = current_user["id"] == action.get("leader_id")
+    if not (is_admin or is_process_owner or is_action_leader):
+        raise HTTPException(status_code=403, detail="No tienes permisos para descargar archivos de esta acción")
+    resource = await get_resource_by_id(file_id)
+    if not resource or resource["action_id"] != action_id:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    from fastapi.responses import FileResponse
+    return FileResponse(resource["file_path"], filename=resource["filename"], media_type=resource["content_type"])
+
+
+@router.get("/{action_id}/files/{file_id}/preview")
+async def preview_action_file(
+    action_id: int,
+    file_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Preview a file from an action.
+    """
+    # Check if action exists
+    action = await get_action_by_id(action_id)
+    if not action:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Acción no encontrada"
+        )
+    
+    # Check permissions
+    is_admin = current_user["role"] == settings.ROLE_ADMIN
+    is_process_owner = current_user["id"] == action.get("created_by")
+    is_action_leader = current_user["id"] == action.get("leader_id")
+    
+    if not (is_admin or is_process_owner or is_action_leader):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para previsualizar archivos de esta acción"
+        )
+    
+    # Get file and return it (implementation needed)
+    # This is a placeholder
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_FOUND,
+        detail="Funcionalidad en desarrollo"
+    )

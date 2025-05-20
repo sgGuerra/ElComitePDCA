@@ -10,19 +10,21 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    role: Optional[str] = "process_leader"
+    roles: List[str] = ["process_leader"]
 
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    role: Optional[str] = None
+    roles: Optional[List[str]] = None
+    is_active: Optional[bool] = None
 
 
 class UserInDBBase(UserBase):
     id: int
-    role: str
+    roles: List[str]
+    is_active: bool = True
     created_at: datetime
     updated_at: datetime
     
@@ -40,3 +42,7 @@ class UserInDB(UserInDBBase):
 
 class UserWithToken(User):
     token: str
+
+
+class UserDeactivationRequest(BaseModel):
+    reason: str

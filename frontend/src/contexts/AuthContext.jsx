@@ -26,7 +26,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const data = await authService.login(email, password);
-      setUser(data.user);
+      // Create a user object from the response data
+      const user = {
+        id: data.user_id,
+        role: data.user_role
+      };
+      setUser(user);
       setLoading(false);
       return data;
     } catch (error) {
@@ -46,12 +51,26 @@ export const AuthProvider = ({ children }) => {
     authService.updateCurrentUser(updatedUser);
   };
 
+  const switchRole = async (role) => {
+    try {
+      setLoading(true);
+      const updatedUser = await authService.switchRole(role);
+      setUser(updatedUser);
+      setLoading(false);
+      return updatedUser;
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     logout,
     updateUserProfile,
+    switchRole,
     isAuthenticated: !!user
   };
 
