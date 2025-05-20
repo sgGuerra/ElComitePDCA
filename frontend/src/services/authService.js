@@ -37,6 +37,7 @@ const authService = {
           name: response.data.name || '',
           email: email
         };
+        console.log('User logged in with role:', user.role, 'Available roles:', user.roles);
         localStorage.setItem('user', JSON.stringify(user));
       }
       return response.data;
@@ -71,6 +72,7 @@ const authService = {
   
   switchRole: async (role) => {
     try {
+      console.log('Switching to role:', role);
       const response = await apiClient.post('/api/auth/switch-role', { role });
       
       if (response.data.access_token) {
@@ -81,7 +83,7 @@ const authService = {
         if (currentUser) {
           const updatedUser = {
             ...currentUser,
-            role: role // This is the active role
+            role: response.data.active_role // Use the active_role from the response
           };
           localStorage.setItem('user', JSON.stringify(updatedUser));
           return updatedUser;

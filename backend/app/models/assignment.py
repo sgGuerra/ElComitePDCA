@@ -65,7 +65,8 @@ async def get_process_leaders(process_id: int) -> List[Dict[str, Any]]:
     try:
         leaders = await get_all(
             """
-            SELECT u.id, u.name, u.email, u.roles, u.is_active, pl.created_at as assigned_at
+            SELECT u.id, u.name, u.email, u.roles, u.is_active, pl.created_at as assigned_at, 
+                   u.created_at, u.updated_at
             FROM process_leaders pl
             JOIN users u ON pl.leader_id = u.id
             WHERE pl.process_id = ?
@@ -73,9 +74,19 @@ async def get_process_leaders(process_id: int) -> List[Dict[str, Any]]:
             (process_id,)
         )
         
-        # Convert roles from JSON string to list
+        # Convert roles from string to list and ensure all required fields
         for leader in leaders:
             leader['roles'] = leader['roles'].split(',')
+            
+            # Add the role field for the schema
+            if 'role' not in leader:
+                leader['role'] = leader['roles'][0] if leader['roles'] else None
+                
+            # Ensure created_at and updated_at fields have values
+            if 'created_at' not in leader or leader['created_at'] is None:
+                leader['created_at'] = datetime.utcnow()
+            if 'updated_at' not in leader or leader['updated_at'] is None:
+                leader['updated_at'] = datetime.utcnow()
         
         return leaders
     except Exception as e:

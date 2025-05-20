@@ -65,10 +65,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 detail="Token expired",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-    except (jwt.JWTError, ValidationError):
+    except jwt.JWTError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
+            detail="Could not validate credentials (JWTError)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except ValidationError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials (ValidationError)",
             headers={"WWW-Authenticate": "Bearer"},
         )
     

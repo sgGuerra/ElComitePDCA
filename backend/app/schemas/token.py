@@ -14,6 +14,6 @@ class TokenPayload(BaseModel):
     sub: Optional[str] = None
     exp: int
     email: Optional[str] = None
-    roles: Optional[List[str]] = None
+    roles: Optional[List[str]] = [] # Default to empty list
     active_role: Optional[str] = None
     name: Optional[str] = None

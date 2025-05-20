@@ -58,7 +58,7 @@ export const ToastProvider = ({ children }) => {
    * @param {number} duration - Duration in ms
    * @returns {string} Toast ID
    */
-  const success = useCallback((message, duration) => 
+  const success = useCallback((message, duration = 6000) => 
     addToast(message, TOAST_TYPES.SUCCESS, duration), [addToast]);
   
   /**

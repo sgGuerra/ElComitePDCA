@@ -193,3 +193,57 @@ async def get_process_assigned_leaders(
     
     leaders = await get_process_leaders(process_id)
     return leaders
+
+
+@router.get("/{process_id}/statistics", response_model=dict)
+async def get_process_detailed_statistics(
+    process_id: int,
+    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get detailed statistics for a specific process.
+    """
+    # Check if process exists
+    process = await get_process_by_id(process_id)
+    if not process:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Proceso no encontrado"
+        )
+    
+    # Get basic statistics
+    basic_stats = await get_process_statistics(process_id)
+    
+    # Add additional statistics from statistics endpoints
+    from app.models.statistics import (
+        get_actions_by_status,
+        get_actions_by_type,
+        get_actions_over_time, 
+        get_completion_rate
+    )
+    
+    # Gather all statistics in parallel
+    from asyncio import gather
+    
+    status_data, type_data, trend_data, completion_data = await gather(
+        get_actions_by_status(process_id, date_range),
+        get_actions_by_type(),  # This doesn't have process_id filtering yet
+        get_actions_over_time(process_id, date_range),
+        get_completion_rate(process_id, date_range)
+    )
+    
+    # Combine all statistics
+    result = basic_stats.copy()
+    result.update({
+        "actions_by_status": status_data,
+        "actions_by_type": type_data,
+        "actions_trend": trend_data,
+        "completion_rate": completion_data.get("rate", 0),
+        "avgCompletionDays": 0,  # Placeholder - would need to implement this calculation
+        "effectivenessRate": 85,  # Placeholder - would need to implement this calculation
+        "lastActivityDate": None,  # Placeholder - would need to implement this
+        "mainPriority": "medium"  # Placeholder - would need calculation for most common priority
+    })
+    
+    return result

@@ -40,10 +40,20 @@ const processService = {
    */
   createProcess: async (processData) => {
     try {
+      console.log('Creating process with data:', processData);
       const response = await apiClient.post('/api/processes', processData);
+      console.log('Process created successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error creating process:', error);
+      // Proporcionar información detallada sobre el error
+      if (error.response) {
+        console.error('Error response:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
       throw error;
     }
   },

@@ -24,12 +24,19 @@ class UserUpdate(BaseModel):
 class UserInDBBase(UserBase):
     id: int
     roles: List[str]
+    role: Optional[str] = None  # Single role representation for frontend compatibility
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
     
     class Config:
         from_attributes = True
+        
+    def __init__(self, **data):
+        super().__init__(**data)
+        # If role isn't provided but roles is, set role to the first role in the list
+        if self.role is None and self.roles:
+            self.role = self.roles[0]
 
 
 class User(UserInDBBase):

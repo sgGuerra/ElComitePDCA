@@ -3,22 +3,39 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import processService from '../services/processService';
+import userService from '../services/userService';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from './LoadingOverlay';
 
 const ProcessManagement = () => {
   const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [processForm, setProcessForm] = useState({
     name: '',
     description: '',
     owner: '',
+    leader_id: '',
     status: 'active',
     departmentId: '',
     priority: 'medium'
   });
+  const [processLeaders, setProcessLeaders] = useState([]);
+  const [leaderLoadError, setLeaderLoadError] = useState(false);
+  const [permissionError, setPermissionError] = useState(false);
+  const { user } = useAuth();
+  const [departments, setDepartments] = useState([
+    { id: 'operations', name: 'Operaciones' },
+    { id: 'finance', name: 'Finanzas' },
+    { id: 'hr', name: 'Recursos Humanos' },
+    { id: 'marketing', name: 'Marketing' },
+    { id: 'it', name: 'Tecnología de la Información' },
+    { id: 'sales', name: 'Ventas' },
+    { id: 'production', name: 'Producción' }
+  ]);
   const [formErrors, setFormErrors] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -26,28 +43,134 @@ const ProcessManagement = () => {
 
   useEffect(() => {
     fetchProcesses();
+    fetchProcessLeaders();
   }, []);
 
   const fetchProcesses = async () => {
     try {
       setLoading(true);
+      setPermissionError(false);
+      
+      // Mostrar mensaje de carga
+      console.log('Cargando procesos...');
+      
       const data = await processService.getAllProcesses();
-      setProcesses(data);
+      console.log('Procesos cargados:', data);
+      
+      // Validar que los datos sean un array
+      if (Array.isArray(data)) {
+        setProcesses(data);
+      } else if (data && Array.isArray(data.data)) {
+        setProcesses(data.data);
+      } else {
+        console.warn('Respuesta inesperada al cargar procesos:', data);
+        setProcesses([]);
+      }
     } catch (err) {
       console.error('Error fetching processes:', err);
-      showError('Error al cargar los procesos');
+      if (err.response && err.response.status === 403) {
+        setPermissionError(true);
+        showError('No tienes permisos para ver procesos. Intenta cambiar al rol de administrador.');
+      } else {
+        showError('Error al cargar los procesos');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const openModal = (process = null) => {
+  const fetchProcessLeaders = async () => {
+    try {
+      setLeaderLoadError(false);
+      const leaders = await userService.getProcessLeaders();
+      
+      if (Array.isArray(leaders) && leaders.length > 0) {
+        setProcessLeaders(leaders);
+      } else {
+        console.warn('Process leaders response is empty or not an array:', leaders);
+        
+        // Si no hay líderes, al menos incluir al usuario actual
+        if (user) {
+          const currentUserAsLeader = {
+            id: user.id,
+            name: user.name || 'Usuario actual',
+            email: user.email,
+            role: user.role
+          };
+          setProcessLeaders([currentUserAsLeader]);
+          console.log('No hay líderes disponibles. Usando usuario actual como opción:', currentUserAsLeader);
+        } else {
+          setProcessLeaders([]);
+          setLeaderLoadError(true);
+          showError('No se encontraron líderes de procesos disponibles');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching process leaders:', err);
+      
+      // Si hay un error, al menos incluir al usuario actual como opción
+      if (user) {
+        const currentUserAsLeader = {
+          id: user.id,
+          name: user.name || 'Usuario actual',
+          email: user.email,
+          role: user.role
+        };
+        console.log('Error al cargar líderes. Usando usuario actual como opción:', currentUserAsLeader);
+        setProcessLeaders([currentUserAsLeader]);
+      } else {
+        setProcessLeaders([]);
+        setLeaderLoadError(true);
+      }
+      
+      // Si hay un error 422, es probablemente un error de validación en el backend
+      if (err.response && err.response.status === 422) {
+        console.log('Error de validación del esquema:', err.response.data);
+        showError('Error al validar los datos de líderes. El usuario actual está disponible como opción.');
+      } else if (err.response && err.response.status === 403) {
+        setPermissionError(true);
+        showError('No tienes permisos para ver líderes de procesos. Intenta cambiar al rol de administrador.');
+      } else {
+        showError('Error al cargar los líderes de procesos. Solo el usuario actual está disponible como opción.');
+      }
+    }
+  };
+
+  const openModal = async (process = null) => {
+    // Refresh process leaders when opening the modal
+    try {
+      await fetchProcessLeaders();
+      
+      // Asegurarse de que el usuario actual siempre esté como opción incluso si se cargan otros líderes
+      if (user && Array.isArray(processLeaders)) {
+        // Verificar si el usuario actual ya está en la lista
+        const currentUserExists = processLeaders.some(leader => leader.id === user.id);
+        
+        if (!currentUserExists) {
+          // Añadir el usuario actual a las opciones
+          const currentUserAsLeader = {
+            id: user.id,
+            name: user.name || 'Usuario actual',
+            email: user.email,
+            role: user.role,
+            // Indicar que es el usuario actual
+            isCurrentUser: true
+          };
+          setProcessLeaders([...processLeaders, currentUserAsLeader]);
+          console.log('Usuario actual añadido a las opciones de líderes:', currentUserAsLeader);
+        }
+      }
+    } catch (error) {
+      console.error('Error al preparar opciones de líderes:', error);
+    }
+    
     if (process) {
       setSelectedProcess(process);
       setProcessForm({
         name: process.name || '',
         description: process.description || '',
         owner: process.owner || '',
+        leader_id: process.leader_id || '',
         status: process.status || 'active',
         departmentId: process.departmentId || '',
         priority: process.priority || 'medium'
@@ -58,22 +181,28 @@ const ProcessManagement = () => {
         name: '',
         description: '',
         owner: '',
+        leader_id: user ? user.id.toString() : '', // Pre-seleccionar al usuario actual por defecto
         status: 'active',
         departmentId: '',
         priority: 'medium'
       });
     }
-    setFormErrors({});
+    
+    // Asegurarnos de que el modal de eliminación esté cerrado
+    setDeleteModalOpen(false);
     setModalOpen(true);
   };
 
   const closeModal = () => {
     setModalOpen(false);
+    setDeleteModalOpen(false);
     setSelectedProcess(null);
+    setFormErrors({});
     setProcessForm({
       name: '',
       description: '',
       owner: '',
+      leader_id: '',
       status: 'active',
       departmentId: '',
       priority: 'medium'
@@ -88,6 +217,10 @@ const ProcessManagement = () => {
     
     if (processForm.name.trim().length < 3) {
       errors.name = 'El nombre debe tener al menos 3 caracteres';
+    }
+    
+    if (processForm.leader_id === '' && processLeaders.length > 0 && !leaderLoadError) {
+      errors.leader_id = 'Se debe seleccionar un responsable para el proceso';
     }
     
     setFormErrors(errors);
@@ -116,27 +249,82 @@ const ProcessManagement = () => {
         // Update existing process
         const response = await processService.updateProcess(selectedProcess.id, processForm);
         
-        if (response.success) {
-          setProcesses(processes.map(p => 
-            p.id === selectedProcess.id ? { ...p, ...processForm } : p
-          ));
-          success('Proceso actualizado exitosamente');
-          closeModal();
-        }
+        // Mostrar mensaje de éxito y cerrar modal
+        setProcesses(processes.map(p => 
+          p.id === selectedProcess.id ? { ...p, ...processForm } : p
+        ));
+        success('Proceso actualizado exitosamente');
+        closeModal();
+        
+        // Resaltar el proceso actualizado
+        setTimeout(() => {
+          const processElement = document.getElementById(`process-${selectedProcess.id}`);
+          if (processElement) {
+            processElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            processElement.classList.add('animate-highlight');
+            setTimeout(() => {
+              processElement.classList.remove('animate-highlight');
+            }, 3000);
+          }
+        }, 500);
       } else {
         // Create new process
         const response = await processService.createProcess(processForm);
+        console.log('Respuesta al crear proceso:', response);
         
-        if (response.success || response.data) {
-          const newProcess = response.data || response;
-          setProcesses([...processes, newProcess]);
-          success('Proceso creado exitosamente');
-          closeModal();
+        // Crear un objeto de proceso basado en la respuesta o en los datos del formulario si la respuesta no es clara
+        const newProcess = response.data || response;
+        
+        // Si falta el ID en la respuesta, asignar uno temporal
+        if (!newProcess.id && response.id) {
+          newProcess.id = response.id;
         }
+        
+        // Si la respuesta contiene datos del proceso, actualizar la lista
+        setProcesses(prev => [...prev, {
+          ...newProcess,
+          name: newProcess.name || processForm.name,
+          description: newProcess.description || processForm.description,
+          id: newProcess.id || Date.now() // Usar timestamp como ID temporal si no hay ID
+        }]);
+        
+        // Si el usuario seleccionó un líder de proceso, actualizar el campo owner para visualización
+        if (processForm.leader_id) {
+          const selectedLeader = processLeaders.find(leader => 
+            leader.id === parseInt(processForm.leader_id) || 
+            leader.id === processForm.leader_id
+          );
+          if (selectedLeader) {
+            newProcess.owner = selectedLeader.name;
+          }
+        }
+        
+        // Mostrar mensaje de éxito y cerrar modal
+        success('Proceso creado exitosamente');
+        closeModal();
+        
+        // Actualizar la lista completa de procesos desde el servidor
+        fetchProcesses();
+        
+        // Notificar al usuario con un aviso más visible
+        setTimeout(() => {
+          const newProcessElement = document.getElementById(`process-${newProcess.id}`);
+          if (newProcessElement) {
+            newProcessElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            newProcessElement.classList.add('animate-highlight');
+            setTimeout(() => {
+              newProcessElement.classList.remove('animate-highlight');
+            }, 3000);
+          }
+        }, 500);
       }
     } catch (err) {
       console.error('Error saving process:', err);
-      showError(err.message || 'Error al guardar el proceso');
+      if (err.response && err.response.status === 403) {
+        showError('No tienes permisos para crear o actualizar procesos. Debes tener rol de administrador.');
+      } else {
+        showError(err.response?.data?.detail || 'Error al guardar el proceso');
+      }
     } finally {
       setLoading(false);
     }
@@ -144,10 +332,13 @@ const ProcessManagement = () => {
 
   const confirmDeleteProcess = (process) => {
     setConfirmDelete(process);
+    setDeleteModalOpen(true);
+    setModalOpen(false);
   };
 
   const cancelDelete = () => {
     setConfirmDelete(null);
+    setDeleteModalOpen(false);
   };
 
   const handleDelete = async () => {
@@ -162,6 +353,7 @@ const ProcessManagement = () => {
         setProcesses(processes.filter(p => p.id !== confirmDelete.id));
         success('Proceso eliminado exitosamente');
         setConfirmDelete(null);
+        setDeleteModalOpen(false);
       }
     } catch (err) {
       console.error('Error deleting process:', err);
@@ -241,10 +433,39 @@ const ProcessManagement = () => {
             <FaPlus />
             <span>Nuevo Proceso</span>
           </button>
+          
+          {leaderLoadError && (
+            <button
+              onClick={fetchProcessLeaders}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Recargar Líderes</span>
+            </button>
+          )}
         </div>
       </div>
       
-      {processes.length === 0 && !loading ? (
+      {permissionError ? (
+        <div className="text-center py-8 bg-yellow-50 border border-yellow-100 rounded-lg p-6">
+          <FaExclamationTriangle className="text-yellow-500 text-5xl mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Problema de permisos</h3>
+          <p className="text-gray-600 mb-4">
+            No tienes los permisos necesarios para gestionar procesos. Esta funcionalidad requiere el rol de administrador.
+          </p>
+          <p className="text-gray-600 mb-6">
+            Usa el selector de roles en la parte superior para cambiar a un rol con los permisos adecuados.
+          </p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+          >
+            Volver al Dashboard
+          </button>
+        </div>
+      ) : processes.length === 0 && !loading ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No hay procesos registrados. Crea un nuevo proceso para comenzar.</p>
           <button 
@@ -281,7 +502,11 @@ const ProcessManagement = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProcesses.map(process => (
-                <tr key={process.id} className="hover:bg-gray-50">
+                <tr 
+                  key={process.id} 
+                  id={`process-${process.id}`}
+                  className="hover:bg-gray-50 transition-colors duration-300"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{process.name}</div>
                   </td>
@@ -368,26 +593,64 @@ const ProcessManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Responsable</label>
-                    <input
-                      type="text"
-                      name="owner"
-                      value={processForm.owner}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                      placeholder="Nombre del responsable"
-                    />
+                    {leaderLoadError ? (
+                      <div className="mt-1">
+                        <div className="flex items-center mb-2 text-sm text-red-600">
+                          <FaExclamationTriangle className="mr-2" /> 
+                          Error al cargar líderes de procesos
+                        </div>
+                        <button
+                          type="button"
+                          onClick={fetchProcessLeaders}
+                          className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded flex items-center"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Reintentar
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <select
+                          name="leader_id"
+                          value={processForm.leader_id}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                        >
+                          <option value="">-- Seleccionar responsable --</option>
+                          {processLeaders.map(leader => (
+                            <option key={leader.id} value={leader.id}>
+                              {leader.name || 'Usuario sin nombre'} 
+                              {leader.id === user?.id ? ' (Tú)' : ''}
+                              {leader.isCurrentUser ? ' (Tu usuario)' : ''}
+                              {leader.department ? ` (${leader.department})` : 
+                               leader.role && !leader.isCurrentUser ? ` (${leader.role})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.leader_id && (
+                          <p className="mt-1 text-sm text-red-600">{formErrors.leader_id}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Departamento</label>
-                    <input
-                      type="text"
+                    <select
                       name="departmentId"
                       value={processForm.departmentId}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                      placeholder="Departamento"
-                    />
+                    >
+                      <option value="">-- Seleccionar departamento --</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 
@@ -422,7 +685,7 @@ const ProcessManagement = () => {
                   </div>
                 </div>
                 
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="flex justify-end mt-6 space-x-3">
                   <button
                     type="button"
                     onClick={closeModal}
@@ -434,7 +697,7 @@ const ProcessManagement = () => {
                     type="submit"
                     className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
                   >
-                    {selectedProcess ? 'Actualizar Proceso' : 'Crear Proceso'}
+                    {selectedProcess ? 'Actualizar' : 'Crear'}
                   </button>
                 </div>
               </form>
@@ -444,31 +707,31 @@ const ProcessManagement = () => {
       )}
       
       {/* Delete Confirmation Modal */}
-      {confirmDelete && (
+      {deleteModalOpen && confirmDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-center text-red-500 mb-4">
-              <FaExclamationTriangle className="text-4xl" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
-              Confirmar Eliminación
-            </h3>
-            <p className="text-gray-600 text-center mb-6">
-              ¿Está seguro que desea eliminar el proceso "{confirmDelete.name}"? Esta acción no se puede deshacer.
-            </p>
-            <div className="flex justify-center space-x-3">
-              <button
-                onClick={cancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Eliminar
-              </button>
+            <div className="flex flex-col items-center">
+              <FaExclamationTriangle className="text-red-500 text-5xl mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
+                Confirmar Eliminación
+              </h3>
+              <p className="text-gray-600 text-center mb-6">
+                ¿Está seguro que desea eliminar el proceso "{confirmDelete?.name}"? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-center space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -4,8 +4,17 @@ const userService = {
   getAllUsers: async () => {
     try {
       const response = await apiClient.get('/api/users');
-      return response.data.data;
+      // Check the response structure and return an array
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else {
+        console.warn('Unexpected response format from /api/users:', response.data);
+        return [];
+      }
     } catch (error) {
+      console.error('Error in getAllUsers:', error);
       throw error;
     }
   },
@@ -48,9 +57,48 @@ const userService = {
 
   getProcessLeaders: async () => {
     try {
+      console.log('Fetching process leaders...');
       const response = await apiClient.get('/api/users/process-leaders');
-      return response.data.data;
+      console.log('Process leaders response:', response.data);
+      
+      // Handle different response formats
+      if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else {
+        console.warn('Unexpected response format from /api/users/process-leaders:', response.data);
+        return [];
+      }
     } catch (error) {
+      console.error('Error in getProcessLeaders:', error);
+      // Si el servidor responde con un error 422, podemos intentar obtener usuarios por rol manualmente
+      if (error.response && error.response.status === 422) {
+        console.log('Intentando fallback para obtener líderes de procesos...');
+        try {
+          // Intentamos obtener los usuarios con roles de líder o admin directamente
+          const leadersResponse = await apiClient.get('/api/users/by-role/process_leader');
+          const adminsResponse = await apiClient.get('/api/users/by-role/admin');
+          
+          // Combinar las respuestas y eliminar duplicados
+          const leaders = leadersResponse.data || [];
+          const admins = adminsResponse.data || [];
+          const allUsers = [...leaders];
+          
+          // Agregar admins que no estén ya en la lista
+          const leaderIds = new Set(leaders.map(l => l.id));
+          admins.forEach(admin => {
+            if (!leaderIds.has(admin.id)) {
+              allUsers.push(admin);
+            }
+          });
+          
+          console.log('Leaders obtenidos mediante fallback:', allUsers.length);
+          return allUsers;
+        } catch (fallbackError) {
+          console.error('Error en el fallback para obtener líderes:', fallbackError);
+        }
+      }
       throw error;
     }
   },

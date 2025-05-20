@@ -17,12 +17,16 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError('');
       const data = await userService.getAllUsers();
-      setUsers(data);
-      setLoading(false);
+      // Ensure data is an array before setting it to state
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching users:', error);
       setError('Error al obtener los usuarios. Por favor, inténtelo de nuevo.');
+      // If there's an error, ensure users is an empty array instead of undefined
+      setUsers([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -41,20 +45,20 @@ const UserManagement = () => {
 
     try {
       setLoading(true);
+      setError('');
       const response = await userService.createUser(newUser);
       
       if (response.success) {
-        setUsers([...users, response.data]);
+        setUsers(prevUsers => Array.isArray(prevUsers) ? [...prevUsers, response.data] : [response.data]);
         setNewUser({ name: '', email: '', password: '', role: 'process_leader' });
         setSuccessMessage('¡Usuario agregado exitosamente!');
-        setError('');
         setTimeout(() => setSuccessMessage(''), 3000);
       }
-      setLoading(false);
     } catch (error) {
-      setLoading(false);
       setError(error.message || 'Error al agregar el usuario');
       setSuccessMessage('');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,25 +74,37 @@ const UserManagement = () => {
 
     try {
       setLoading(true);
+      setError('');
       const response = await userService.deleteUser(id);
       
       if (response.success) {
-        setUsers(users.filter((user) => user.id !== id));
+        setUsers(prevUsers => Array.isArray(prevUsers) ? prevUsers.filter((user) => user.id !== id) : []);
         setSuccessMessage('¡Usuario eliminado exitosamente!');
-        setError('');
         setTimeout(() => setSuccessMessage(''), 3000);
       }
-      setLoading(false);
     } catch (error) {
-      setLoading(false);
       setError(error.message || 'Error al eliminar el usuario');
       setSuccessMessage('');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-xl shadow space-y-4">
-      <h2 className="text-xl font-semibold text-primary">Gestión de Usuarios</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-primary">Gestión de Usuarios</h2>
+        <button
+          onClick={fetchUsers}
+          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
+          disabled={loading}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Actualizar
+        </button>
+      </div>
 
       {successMessage && (
         <div className="bg-green-100 text-green-700 px-4 py-2 rounded-md">
@@ -97,8 +113,14 @@ const UserManagement = () => {
       )}
 
       {error && (
-        <div className="bg-red-100 text-red-700 px-4 py-2 rounded-md">
-          {error}
+        <div className="bg-red-100 text-red-700 px-4 py-2 rounded-md flex justify-between items-center">
+          <span>{error}</span>
+          <button 
+            onClick={fetchUsers}
+            className="ml-4 text-xs bg-red-200 hover:bg-red-300 text-red-800 py-1 px-2 rounded"
+          >
+            Reintentar
+          </button>
         </div>
       )}
 
@@ -167,9 +189,10 @@ const UserManagement = () => {
         </button>
       </form>
 
-      {loading && !users.length ? (
-        <div className="py-8 flex justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      {loading ? (
+        <div className="py-8 flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-2"></div>
+          <p className="text-gray-600">Cargando usuarios...</p>
         </div>
       ) : (
         <div className="overflow-x-auto mt-6">
@@ -183,7 +206,7 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {users.length === 0 ? (
+              {!users || users.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="py-4 px-4 text-center text-gray-500">
                     No hay usuarios registrados

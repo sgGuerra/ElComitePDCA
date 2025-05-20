@@ -74,6 +74,17 @@ async def get_all_users() -> List[Dict[str, Any]]:
         # Convert roles from string to list for each user
         for user in users:
             user["roles"] = user["roles"].split(',')
+            
+            # Ensure role field is compatible with response model
+            if "role" not in user:
+                # Take the first role as the primary role
+                user["role"] = user["roles"][0] if user["roles"] else ""
+                
+            # Ensure created_at and updated_at fields exist (for schema validation)
+            if "created_at" not in user or user["created_at"] is None:
+                user["created_at"] = datetime.utcnow()
+            if "updated_at" not in user or user["updated_at"] is None:
+                user["updated_at"] = datetime.utcnow()
         
         return users
     except Exception as e:
@@ -180,14 +191,30 @@ async def get_users_by_role(role: str) -> List[Dict[str, Any]]:
     """Get users with a specific role."""
     try:
         # We use LIKE here since roles are stored as comma-separated values
+        # But we need to ensure we match the exact role (not a substring)
         users = await get_all(
-            "SELECT * FROM users WHERE roles LIKE ? AND is_active = 1",
-            (f"%{role}%",)
+            "SELECT * FROM users WHERE (roles = ? OR roles LIKE ? OR roles LIKE ? OR roles LIKE ?) AND is_active = 1",
+            (
+                role,               # Exact match (single role)
+                f"{role},%",        # Role at the beginning
+                f"%,{role},%",      # Role in the middle
+                f"%,{role}"         # Role at the end
+            )
         )
         
         # Convert roles from string to list for each user
         for user in users:
             user["roles"] = user["roles"].split(',')
+            # Ensure role field is compatible with response model
+            if "role" not in user:
+                # Take the first role as the primary role
+                user["role"] = user["roles"][0] if user["roles"] else ""
+            
+            # Ensure created_at and updated_at fields exist (for schema validation)
+            if "created_at" not in user or user["created_at"] is None:
+                user["created_at"] = datetime.utcnow()
+            if "updated_at" not in user or user["updated_at"] is None:
+                user["updated_at"] = datetime.utcnow()
         
         return users
     except Exception as e:

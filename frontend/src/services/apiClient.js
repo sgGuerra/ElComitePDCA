@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // Get API URL from environment variable or use default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Create an Axios instance with default config
 const apiClient = axios.create({
@@ -31,6 +31,7 @@ apiClient.interceptors.response.use(
   error => {
     // Handle 401 Unauthorized errors (token expired or invalid)
     if (error.response && error.response.status === 401) {
+      console.error('Authentication error (401):', error.response.data);
       // Clear auth data from local storage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -39,6 +40,19 @@ apiClient.interceptors.response.use(
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
+    }
+    
+    // Handle 403 Forbidden errors (no permission for resource)
+    if (error.response && error.response.status === 403) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      console.error('Permission denied (403):', {
+        url: error.config.url,
+        method: error.config.method,
+        currentUserRole: user.role || 'unknown',
+        availableRoles: user.roles || [],
+        detail: error.response.data
+      });
+      // No redirect - let the component handle the error
     }
     
     return Promise.reject(error);

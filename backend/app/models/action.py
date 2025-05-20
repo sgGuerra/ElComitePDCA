@@ -17,7 +17,7 @@ async def create_action(action_data: ActionCreate, user_id: int) -> Dict[str, An
             """
             INSERT INTO actions (
                 process_id, leader_id, name, origin, start_date, target_date,
-                what, why, how, where, status, evidence, completion_percentage,
+                what, why, how, location, status, evidence, completion_percentage,
                 created_by, related_type, related_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,

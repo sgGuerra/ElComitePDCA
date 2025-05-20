@@ -440,6 +440,12 @@ const AuditorPanel = () => {
           </>
         )}
         
-        {activeTab === 'logs' && (
-          <AuditLogTracker />
-        )}
+                {activeTab === 'logs' && (
+                  <AuditLogTracker />
+                )}
+              </div>
+            </div>
+          );
+        };
+        
+        export default AuditorPanel;

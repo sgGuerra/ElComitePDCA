@@ -19,7 +19,7 @@ const ActionDetail = () => {
   const { processId, actionId } = useParams();
   const [action, setAction] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // Main error for action details
   const [editing, setEditing] = useState(false);
   const [actionForm, setActionForm] = useState({
     name: '',
@@ -51,20 +51,20 @@ const ActionDetail = () => {
 
   const fetchActionData = async () => {
     setLoading(true);
+    setError(null); // Clear previous main errors
+    setAction(null); // Reset action state
+
     try {
-      // Fetch action details, files, comments, and history in parallel
-      const [actionData, filesData, commentsData, historyData] = await Promise.all([
-        actionService.getActionById(actionId),
-        fileService.getActionFiles(actionId),
-        actionService.getActionComments(actionId),
-        actionService.getActionHistory(actionId)
-      ]);
+      // Fetch main action details first
+      const actionData = await actionService.getActionById(actionId);
+      
+      if (!actionData) { // Handle case where actionData might be null or undefined
+        // This case might indicate a 404 or an empty response that's not an error per se,
+        // but means no data to display.
+        throw new Error('No se encontraron datos para la acción o la acción no existe.');
+      }
       
       setAction(actionData);
-      setFiles(filesData || []);
-      setComments(commentsData || []);
-      setHistory(historyData || []);
-      
       // Initialize form with action data
       setActionForm({
         name: actionData.name || '',
@@ -76,10 +76,40 @@ const ActionDetail = () => {
         how: actionData.how || '',
         priority: actionData.priority || 'medium'
       });
+
+      // Then fetch related data, handling errors individually
+      try {
+        const filesData = await fileService.getActionFiles(actionId);
+        setFiles(filesData || []);
+      } catch (fileError) {
+        console.error('Error fetching files:', fileError);
+        showError('Error al cargar archivos adjuntos.');
+        // Do not set main error here, allow component to render with partial data if main action loaded
+      }
+
+      try {
+        const commentsData = await actionService.getActionComments(actionId);
+        setComments(commentsData || []);
+      } catch (commentError) {
+        console.error('Error fetching comments:', commentError);
+        showError('Error al cargar comentarios.');
+      }
+
+      try {
+        const historyData = await actionService.getActionHistory(actionId);
+        setHistory(historyData || []);
+      } catch (historyError) {
+        console.error('Error fetching history:', historyError);
+        showError('Error al cargar el historial.');
+      }
+
     } catch (err) {
+      // This catch is now primarily for errors from getActionById or if actionData is null/undefined
       console.error('Error fetching action details:', err);
-      setError('Error al cargar los detalles de la acción.');
-      showError('Error al cargar los detalles de la acción');
+      const errorMessage = err.response?.data?.detail || err.message || 'Error al cargar los detalles de la acción.';
+      setError(errorMessage);
+      showError(errorMessage);
+      // setAction(null) is already done at the beginning of the try block
     } finally {
       setLoading(false);
     }
@@ -595,7 +625,6 @@ const ActionDetail = () => {
               }}
             />
             </div>
-          </div>
           
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">

@@ -24,7 +24,7 @@ async def create_admin(name, email, password):
     
     # Create admin user
     await insert(
-        "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+        "INSERT INTO users (name, email, password, roles) VALUES (?, ?, ?, ?)",
         (name, email, hashed_password, "admin")
     )
     

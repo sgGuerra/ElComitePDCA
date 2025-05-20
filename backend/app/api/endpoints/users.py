@@ -1,5 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+import logging
+from datetime import datetime
 
 from app.core.auth import get_current_user, verify_admin
 from app.core.config import settings
@@ -16,6 +18,7 @@ from app.schemas.user import User, UserCreate, UserUpdate, UserDeactivationReque
 from app.models.deactivation import create_deactivation_request
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[User])
@@ -199,3 +202,64 @@ async def transfer_user_processes(
         "success": True, 
         "message": f"Se han transferido {len(processes)} procesos al nuevo líder"
     }
+
+
+@router.get("/process-leaders", response_model=List[User])
+async def get_process_leaders_list(
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Get all users with process_leader role.
+    This is used for selecting process owners in process management.
+    """
+    try:
+        # Get users with process_leader role or admin role
+        leaders = await get_users_by_role(settings.ROLE_PROCESS_LEADER)
+        admins = await get_users_by_role(settings.ROLE_ADMIN)
+        
+        logger.info(f"Process leaders found: {len(leaders)}")
+        logger.info(f"Admins found: {len(admins)}")
+        
+        # Combine and remove duplicates
+        seen_ids = set()
+        all_leaders = []
+        
+        for leader in leaders:
+            if leader["id"] not in seen_ids:
+                seen_ids.add(leader["id"])
+                # Ensure every field required by the User model is present
+                if "role" not in leader:
+                    leader["role"] = settings.ROLE_PROCESS_LEADER
+                # Ensure created_at and updated_at fields exist
+                if "created_at" not in leader:
+                    leader["created_at"] = datetime.utcnow()
+                if "updated_at" not in leader:
+                    leader["updated_at"] = datetime.utcnow()
+                all_leaders.append(leader)
+        
+        for admin in admins:
+            if admin["id"] not in seen_ids:
+                seen_ids.add(admin["id"])
+                # Ensure every field required by the User model is present
+                if "role" not in admin:
+                    admin["role"] = settings.ROLE_ADMIN
+                # Ensure created_at and updated_at fields exist
+                if "created_at" not in admin:
+                    admin["created_at"] = datetime.utcnow()
+                if "updated_at" not in admin:
+                    admin["updated_at"] = datetime.utcnow()
+                all_leaders.append(admin)
+        
+        # Filter out inactive users
+        active_leaders = [leader for leader in all_leaders if leader.get("is_active", True)]
+        
+        logger.info(f"Total active leaders: {len(active_leaders)}")
+        
+        return active_leaders
+    
+    except Exception as e:
+        logger.error(f"Error getting process leaders: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener líderes de procesos: {str(e)}"
+        )

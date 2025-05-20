@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in
     const initializeAuth = () => {
       const currentUser = authService.getCurrentUser();
       setUser(currentUser);
@@ -25,15 +24,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      const data = await authService.login(email, password);
-      // Create a user object from the response data
-      const user = {
-        id: data.user_id,
-        role: data.user_role
-      };
-      setUser(user);
+      await authService.login(email, password);
+      const loggedInUser = authService.getCurrentUser();
+      setUser(loggedInUser);
       setLoading(false);
-      return data;
+      return loggedInUser;
     } catch (error) {
       setLoading(false);
       throw error;
@@ -46,15 +41,17 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
-  const updateUserProfile = (updatedUser) => {
+  const updateUserProfile = (updatedProfileData) => {
+    const currentUser = authService.getCurrentUser();
+    const updatedUser = { ...currentUser, ...updatedProfileData };
     setUser(updatedUser);
     authService.updateCurrentUser(updatedUser);
   };
 
-  const switchRole = async (role) => {
+  const switchRole = async (newActiveRole) => {
     try {
       setLoading(true);
-      const updatedUser = await authService.switchRole(role);
+      const updatedUser = await authService.switchRole(newActiveRole);
       setUser(updatedUser);
       setLoading(false);
       return updatedUser;
