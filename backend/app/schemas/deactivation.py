@@ -28,7 +28,7 @@ class DeactivationRequest(DeactivationRequestBase):
     processed_by_name: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class DeactivationRequestWithProcesses(DeactivationRequest):
