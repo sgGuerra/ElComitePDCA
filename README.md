@@ -193,6 +193,20 @@ Una vez iniciado el backend, FastAPI genera automáticamente la documentación i
 | Crear Admin | `cd backend && python create_admin.py` |
 | Build Frontend (Producción) | `cd frontend && npm run build` |
 | Preview Build Frontend | `cd frontend && npm run preview` |
+| Ejecutar Tests | `cd backend && pytest` |
+
+## Ejecucción de pruebas
+
+En Windows Power Shell:
+```bash
+cd backend
+.venv\Scripts\python.exe -m pytest tests/ -v
+```
+En Linux:
+```bash
+cd backend
+python3 -m pytest tests/ -v
+```
 
 ---
 

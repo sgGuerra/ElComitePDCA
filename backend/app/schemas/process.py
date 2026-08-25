@@ -7,6 +7,10 @@ class ProcessBase(BaseModel):
     name: str
     description: Optional[str] = None
     status: Optional[str] = "active"
+    owner: Optional[str] = None
+    leader_id: Optional[int] = None
+    priority: Optional[str] = "medium"
+    departmentId: Optional[str] = None
 
 
 class ProcessCreate(ProcessBase):
@@ -17,6 +21,10 @@ class ProcessUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    owner: Optional[str] = None
+    leader_id: Optional[int] = None
+    priority: Optional[str] = None
+    departmentId: Optional[str] = None
 
 
 class ProcessInDBBase(ProcessBase):
@@ -38,3 +46,4 @@ class ProcessWithStats(Process):
     completed_actions: int = 0
     pending_actions: int = 0
     overdue_actions: int = 0
+
