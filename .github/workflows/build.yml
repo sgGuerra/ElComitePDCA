@@ -46,8 +46,9 @@ jobs:
         working-directory: ./frontend
         run: npm run test:cov
 
-      # --- SonarQube Scan ---
-      - uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
+      # --- SonarCloud Scan ---
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
