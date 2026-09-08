@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+backend/__pycache__
+frontend/__pycache__
+__pycache__
+
 # Entornos y Variables
 .env
 .env.*

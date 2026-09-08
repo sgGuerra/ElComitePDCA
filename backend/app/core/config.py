@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = ""
     
     # Security settings
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    SECRET_KEY: str = os.environ.get("SECRET_KEY", "el-comite-pdca-secret-key-change-in-production-2024")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     
     # CORS settings
