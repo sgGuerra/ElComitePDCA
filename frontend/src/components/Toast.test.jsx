@@ -3,79 +3,58 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ToastContainer from './Toast';
 
+// --- Helpers ---
+const createToast = (overrides = {}) => ({
+  id: '1',
+  message: 'Test message',
+  type: 'info',
+  duration: 5000,
+  ...overrides,
+});
+
+const renderToasts = (toasts, removeToast = () => {}) =>
+  render(<ToastContainer toasts={toasts} removeToast={removeToast} />);
+
 describe('ToastContainer', () => {
   it('should render nothing when toasts array is empty', () => {
-    const { container } = render(
-      <ToastContainer toasts={[]} removeToast={() => {}} />
-    );
+    const { container } = renderToasts([]);
     expect(container.innerHTML).toBe('');
   });
 
-  it('should render a success toast', () => {
-    const toasts = [
-      { id: '1', message: 'Operación exitosa', type: 'success', duration: 5000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={() => {}} />);
-    expect(screen.getByText('Operación exitosa')).toBeInTheDocument();
-  });
-
-  it('should render an error toast', () => {
-    const toasts = [
-      { id: '2', message: 'Algo salió mal', type: 'error', duration: 5000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={() => {}} />);
-    expect(screen.getByText('Algo salió mal')).toBeInTheDocument();
-  });
-
-  it('should render a warning toast', () => {
-    const toasts = [
-      { id: '3', message: 'Cuidado', type: 'warning', duration: 5000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={() => {}} />);
-    expect(screen.getByText('Cuidado')).toBeInTheDocument();
-  });
-
-  it('should render an info toast (default type)', () => {
-    const toasts = [
-      { id: '4', message: 'Información', type: 'info', duration: 5000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={() => {}} />);
-    expect(screen.getByText('Información')).toBeInTheDocument();
+  it.each([
+    { type: 'success', message: 'Operación exitosa' },
+    { type: 'error',   message: 'Algo salió mal' },
+    { type: 'warning', message: 'Cuidado' },
+    { type: 'info',    message: 'Información' },
+  ])('should render a $type toast', ({ type, message }) => {
+    renderToasts([createToast({ id: type, type, message })]);
+    expect(screen.getByText(message)).toBeInTheDocument();
   });
 
   it('should render multiple toasts', () => {
     const toasts = [
-      { id: '1', message: 'Toast 1', type: 'success', duration: 5000 },
-      { id: '2', message: 'Toast 2', type: 'error', duration: 5000 }
+      createToast({ id: '1', message: 'Toast 1', type: 'success' }),
+      createToast({ id: '2', message: 'Toast 2', type: 'error' }),
     ];
-    render(<ToastContainer toasts={toasts} removeToast={() => {}} />);
+    renderToasts(toasts);
     expect(screen.getByText('Toast 1')).toBeInTheDocument();
     expect(screen.getByText('Toast 2')).toBeInTheDocument();
   });
 
   it('should call removeToast when close button is clicked', () => {
     const removeToast = vi.fn();
-    const toasts = [
-      { id: 'test-id', message: 'Cerrar este', type: 'success', duration: 5000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={removeToast} />);
+    renderToasts([createToast({ id: 'test-id', message: 'Cerrar este' })], removeToast);
 
-    const closeButton = screen.getByLabelText('Close');
-    fireEvent.click(closeButton);
+    fireEvent.click(screen.getByLabelText('Close'));
     expect(removeToast).toHaveBeenCalledWith('test-id');
   });
 
   it('should auto-remove toast after duration', () => {
     vi.useFakeTimers();
     const removeToast = vi.fn();
-    const toasts = [
-      { id: 'auto-id', message: 'Auto remove', type: 'info', duration: 3000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={removeToast} />);
+    renderToasts([createToast({ id: 'auto-id', message: 'Auto remove', duration: 3000 })], removeToast);
 
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
+    act(() => vi.advanceTimersByTime(3000));
 
     expect(removeToast).toHaveBeenCalledWith('auto-id');
     vi.useRealTimers();
@@ -84,24 +63,17 @@ describe('ToastContainer', () => {
   it('should not auto-remove toast when duration is 0', () => {
     vi.useFakeTimers();
     const removeToast = vi.fn();
-    const toasts = [
-      { id: 'no-auto', message: 'Stay forever', type: 'warning', duration: 0 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={removeToast} />);
+    renderToasts([createToast({ id: 'no-auto', message: 'Stay forever', duration: 0 })], removeToast);
 
-    act(() => {
-      vi.advanceTimersByTime(10000);
-    });
+    act(() => vi.advanceTimersByTime(10000));
 
     expect(removeToast).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
   it('should have role="alert" for accessibility', () => {
-    const toasts = [
-      { id: 'a11y', message: 'Accesible', type: 'success', duration: 5000 }
-    ];
-    render(<ToastContainer toasts={toasts} removeToast={() => {}} />);
+    renderToasts([createToast({ id: 'a11y', message: 'Accesible' })]);
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 });
+
