@@ -71,3 +71,7 @@ ehthumbs.db
 
 # Frontend / Node
 .eslintcache
+ 
+# SonarScanner
+.scannerwork/
+.sonarlint/
