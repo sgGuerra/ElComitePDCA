@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.auth import get_current_user, verify_admin
 from app.core.config import settings
@@ -95,9 +95,9 @@ async def get_process_leaders_list(
                     leader["role"] = settings.ROLE_PROCESS_LEADER
                 # Ensure created_at and updated_at fields exist
                 if "created_at" not in leader:
-                    leader["created_at"] = datetime.utcnow()
+                    leader["created_at"] = datetime.now(timezone.utc)
                 if "updated_at" not in leader:
-                    leader["updated_at"] = datetime.utcnow()
+                    leader["updated_at"] = datetime.now(timezone.utc)
                 all_leaders.append(leader)
         
         for admin in admins:
@@ -108,9 +108,9 @@ async def get_process_leaders_list(
                     admin["role"] = settings.ROLE_ADMIN
                 # Ensure created_at and updated_at fields exist
                 if "created_at" not in admin:
-                    admin["created_at"] = datetime.utcnow()
+                    admin["created_at"] = datetime.now()
                 if "updated_at" not in admin:
-                    admin["updated_at"] = datetime.utcnow()
+                    admin["updated_at"] = datetime.now()
                 all_leaders.append(admin)
         
         # Filter out inactive users
