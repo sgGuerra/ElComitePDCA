@@ -183,4 +183,5 @@ const generateDummyTrendData = (dateRange) => {
   return data;
 };
 
+export { generateDummyTrendData };
 export default statisticsService;
