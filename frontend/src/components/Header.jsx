@@ -5,7 +5,13 @@ import { FaBell, FaCog, FaUserCircle, FaSignOutAlt, FaExchangeAlt } from 'react-
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import notificationService from '../services/notificationService';
+import actionService from '../services/actionService';
 import RoleSelector from './RoleSelector';
+
+// Cross-tab sync: notify other open tabs immediately when notifications change
+// here, instead of waiting up to 60s for the next poll (E24).
+const notificationsChannel =
+  typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('notifications') : null;
 
 const Header = ({ activeTab, setActiveTab, tabs }) => {
   const navigate = useNavigate();
@@ -27,11 +33,21 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
     };
 
     fetchUnreadCount();
-    
+
     // Poll for new notifications every minute
     const interval = setInterval(fetchUnreadCount, 60000);
-    
-    return () => clearInterval(interval);
+
+    // Refresh immediately when another tab reports a notification change
+    if (notificationsChannel) {
+      notificationsChannel.onmessage = () => fetchUnreadCount();
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (notificationsChannel) {
+        notificationsChannel.onmessage = null;
+      }
+    };
   }, []);
 
   const fetchNotifications = async () => {
@@ -64,22 +80,50 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
   const handleMarkAsRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications(notifications.map(n => 
+      setNotifications(notifications.map(n =>
         n.id === id ? { ...n, read: true } : n
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
+      notificationsChannel?.postMessage({ type: 'read', id });
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
+    // E17/E22: un solo clic marcaba todo como leído sin posibilidad de
+    // deshacerlo, descartando recordatorios que el usuario no alcanzó a revisar.
+    const confirmed = window.confirm(
+      '¿Marcar todas las notificaciones como leídas? Esta acción no se puede deshacer.'
+    );
+    if (!confirmed) return;
+
     try {
       await notificationService.markAllAsRead();
       setNotifications(notifications.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
+      notificationsChannel?.postMessage({ type: 'read-all' });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const handleNotificationNavigate = async (notification) => {
+    // E18: antes se podía marcar como leída sin llegar a ver la acción
+    // relacionada. Ahora, al hacer clic en el cuerpo, se navega primero
+    // y solo después se marca como leída.
+    setShowNotifications(false);
+    try {
+      if (notification.related_type === 'action' && notification.related_id) {
+        const action = await actionService.getActionById(notification.related_id);
+        navigate(`/procesos/${action.process_id}/acciones/${action.id}`);
+      }
+    } catch (error) {
+      console.error('Error navigating to related action:', error);
+    } finally {
+      if (!notification.read) {
+        handleMarkAsRead(notification.id);
+      }
     }
   };
 
@@ -166,15 +210,24 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
                   </div>
                 ) : (
                   notifications.map(notification => (
-                    <div 
-                      key={notification.id} 
-                      className={`p-4 hover:bg-gray-50 transition-colors ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
+                    <div
+                      key={notification.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleNotificationNavigate(notification)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleNotificationNavigate(notification);
+                        }
+                      }}
+                      className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
                     >
                       <div className="flex justify-between">
                         <p className="font-medium text-sm">{notification.title}</p>
                         {!notification.read && (
-                          <button 
-                            onClick={() => handleMarkAsRead(notification.id)}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
                             className="text-xs text-primary hover:text-primary/80"
                           >
                             Marcar como leída

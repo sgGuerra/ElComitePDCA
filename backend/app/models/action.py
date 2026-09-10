@@ -4,7 +4,7 @@ from datetime import datetime, date
 
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.action import ActionCreate, ActionUpdate
-from app.models.notification import create_notification
+from app.models.notification import create_notification, has_unread_notification
 
 logger = logging.getLogger(__name__)
 
@@ -372,21 +372,36 @@ async def _handle_status_change_notification(
         if new_status == "completed":
             # Notify creator if different from leader
             if created_by != leader_id:
+                title = "Acción completada"
+                # Avoid duplicate notifications from rapid repeated status changes
+                if not await has_unread_notification(created_by, title, "action", action_id):
+                    await create_notification(
+                        user_id=created_by,
+                        title=title,
+                        message=f"La acción '{action_name}' ha sido marcada como completada.",
+                        related_type="action",
+                        related_id=action_id
+                    )
+        elif new_status == "overdue":
+            title = "Acción vencida"
+            if not await has_unread_notification(leader_id, title, "action", action_id):
                 await create_notification(
-                    user_id=created_by,
-                    title="Acción completada",
-                    message=f"La acción '{action_name}' ha sido marcada como completada.",
+                    user_id=leader_id,
+                    title=title,
+                    message=f"La acción '{action_name}' ha vencido su plazo de entrega.",
                     related_type="action",
                     related_id=action_id
                 )
-        elif new_status == "overdue":
-            # Notify leader
-            await create_notification(
-                user_id=leader_id,
-                title="Acción vencida",
-                message=f"La acción '{action_name}' ha vencido su plazo de entrega.",
-                related_type="action",
-                related_id=action_id
-            )
+        elif new_status == "canceled":
+            # Notify creator (if different) that the action was canceled, so other
+            # leaders aren't left assuming it's still active
+            if created_by != leader_id:
+                await create_notification(
+                    user_id=created_by,
+                    title="Acción cancelada",
+                    message=f"La acción '{action_name}' ha sido cancelada.",
+                    related_type="action",
+                    related_id=action_id
+                )
     except Exception as e:
         logger.error(f"Error creating status change notification: {str(e)}")

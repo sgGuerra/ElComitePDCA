@@ -107,9 +107,23 @@ const ConfigurationManagement = () => {
   // Handle input change for the current active configuration
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const inputValue = type === 'checkbox' ? checked : 
+    const inputValue = type === 'checkbox' ? checked :
                       type === 'number' ? parseInt(value, 10) : value;
-    
+
+    // E16: desactivar el recordatorio de vencimiento no pedía ninguna advertencia
+    if (
+      activeTab === 'notifications' &&
+      name === 'notifyOnDueDateApproaching' &&
+      notificationConfig.notifyOnDueDateApproaching === true &&
+      inputValue === false
+    ) {
+      const confirmed = window.confirm(
+        'Vas a desactivar los recordatorios de acciones próximas a vencer. ' +
+        'Dejarás de recibir avisos de vencimiento hasta que lo reactives. ¿Continuar?'
+      );
+      if (!confirmed) return;
+    }
+
     setChanges(true);
     
     switch (activeTab) {

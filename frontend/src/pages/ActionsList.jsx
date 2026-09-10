@@ -258,7 +258,22 @@ const ActionsList = () => {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
+    if (sortedActions.length === 0) {
+      showError('No hay datos para exportar con los filtros actuales');
+      return;
+    }
+
+    // Revalidate the session before exporting: if the token expired or the
+    // user logged out in another tab, this call fails with 401 and apiClient's
+    // interceptor redirects to /login instead of silently exporting stale data.
+    try {
+      await actionService.getActionsByProcess(processId);
+    } catch (err) {
+      showError('No se pudo exportar: tu sesión pudo haber expirado. Inicia sesión de nuevo.');
+      return;
+    }
+
     // Create CSV content
     const headers = ['Nombre', 'Responsable', 'Estado', 'Prioridad', 'Fecha Objetivo', '¿Qué?', '¿Por qué?', '¿Cómo?'];
     const csvRows = [headers.join(',')];
@@ -283,13 +298,16 @@ const ActionsList = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
+    const rawProcessName = process?.name || 'proceso';
+    const sanitizedProcessName = rawProcessName.replace(/[/\\?%*:|"<>]/g, '_').trim();
     link.setAttribute('href', url);
-    link.setAttribute('download', `acciones_${process?.name || 'proceso'}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `acciones_${sanitizedProcessName}_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const getStatusLabel = (status) => {
@@ -387,7 +405,8 @@ const ActionsList = () => {
             
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              disabled={loading || !!error}
+              className={`flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 ${(loading || !!error) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <FaDownload />
               <span>Exportar CSV</span>
