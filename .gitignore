@@ -33,6 +33,7 @@ __pycache__
 .venv/
 venv/
 env/
+# TEST documentacion
 test.md
 
 # Python (Backend)
