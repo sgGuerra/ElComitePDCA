@@ -2,6 +2,8 @@
 
 import apiClient from './apiClient';
 
+const ACTIONS_BASE_URL = '/api/actions';
+
 // API service for Action-related operations
 const actionService = {
   /**
@@ -11,7 +13,7 @@ const actionService = {
    */
   getActionsByProcess: async (processId) => {
     try {
-      const response = await apiClient.get(`/api/actions/process/${processId}`);
+      const response = await apiClient.get(`${ACTIONS_BASE_URL}/process/${processId}`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching actions for process ${processId}:`, error);
@@ -26,7 +28,7 @@ const actionService = {
    */
   getActionById: async (id) => {
     try {
-      const response = await apiClient.get(`/api/actions/${id}`);
+      const response = await apiClient.get(`${ACTIONS_BASE_URL}/${id}`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching action ${id}:`, error);
@@ -46,7 +48,7 @@ const actionService = {
         throw new Error('Process ID is required to create an action');
       }
       
-      const response = await apiClient.post('/api/actions', actionData);
+      const response = await apiClient.post(ACTIONS_BASE_URL, actionData);
       return response.data;
     } catch (error) {
       console.error('Error creating action:', error);
@@ -62,7 +64,7 @@ const actionService = {
    */
   updateAction: async (id, actionData) => {
     try {
-      const response = await apiClient.put(`/api/actions/${id}`, actionData);
+      const response = await apiClient.put(`${ACTIONS_BASE_URL}/${id}`, actionData);
       return response.data;
     } catch (error) {
       console.error(`Error updating action ${id}:`, error);
@@ -80,7 +82,7 @@ const actionService = {
   updateActionStatus: async (id, status, comment) => {
     try {
       const response = await apiClient.patch(
-        `/api/actions/${id}/status`, 
+        `${ACTIONS_BASE_URL}/${id}/status`, 
         { status, comment }
       );
       return response.data;
@@ -97,7 +99,7 @@ const actionService = {
    */
   deleteAction: async (id) => {
     try {
-      const response = await apiClient.delete(`/api/actions/${id}`);
+      const response = await apiClient.delete(`${ACTIONS_BASE_URL}/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting action ${id}:`, error);
@@ -112,7 +114,7 @@ const actionService = {
    */
   getActionHistory: async (id) => {
     try {
-      const response = await apiClient.get(`/api/actions/${id}/history`);
+      const response = await apiClient.get(`${ACTIONS_BASE_URL}/${id}/history`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching history for action ${id}:`, error);
@@ -127,7 +129,7 @@ const actionService = {
    */
   getActionComments: async (id) => {
     try {
-      const response = await apiClient.get(`/api/actions/${id}/comments`);
+      const response = await apiClient.get(`${ACTIONS_BASE_URL}/${id}/comments`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching comments for action ${id}:`, error);
@@ -144,7 +146,7 @@ const actionService = {
   addActionComment: async (id, comment) => {
     try {
       const response = await apiClient.post(
-        `/api/actions/${id}/comments`, 
+        `${ACTIONS_BASE_URL}/${id}/comments`, 
         { comment }
       );
       return response.data;
@@ -163,7 +165,7 @@ const actionService = {
   deleteActionComment: async (id, commentId) => {
     try {
       const response = await apiClient.delete(
-        `/api/actions/${id}/comments/${commentId}`
+        `${ACTIONS_BASE_URL}/${id}/comments/${commentId}`
       );
       return response.data;
     } catch (error) {

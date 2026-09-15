@@ -2,6 +2,8 @@
 
 import apiClient from './apiClient';
 
+const PROCESSES_BASE_URL = '/api/processes';
+
 // API service for Process-related operations
 const processService = {
   /**
@@ -10,7 +12,7 @@ const processService = {
    */
   getAllProcesses: async () => {
     try {
-      const response = await apiClient.get('/api/processes');
+      const response = await apiClient.get(PROCESSES_BASE_URL);
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error fetching processes:', error);
@@ -25,7 +27,7 @@ const processService = {
    */
   getProcessById: async (id) => {
     try {
-      const response = await apiClient.get(`/api/processes/${id}`);
+      const response = await apiClient.get(`${PROCESSES_BASE_URL}/${id}`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching process ${id}:`, error);
@@ -41,7 +43,7 @@ const processService = {
   createProcess: async (processData) => {
     try {
       console.log('Creating process with data:', processData);
-      const response = await apiClient.post('/api/processes', processData);
+      const response = await apiClient.post(PROCESSES_BASE_URL, processData);
       console.log('Process created successfully:', response.data);
       return response.data;
     } catch (error) {
@@ -66,7 +68,7 @@ const processService = {
    */
   updateProcess: async (id, processData) => {
     try {
-      const response = await apiClient.put(`/api/processes/${id}`, processData);
+      const response = await apiClient.put(`${PROCESSES_BASE_URL}/${id}`, processData);
       return response.data;
     } catch (error) {
       console.error(`Error updating process ${id}:`, error);
@@ -81,7 +83,7 @@ const processService = {
    */
   deleteProcess: async (id) => {
     try {
-      const response = await apiClient.delete(`/api/processes/${id}`);
+      const response = await apiClient.delete(`${PROCESSES_BASE_URL}/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting process ${id}:`, error);
@@ -96,7 +98,7 @@ const processService = {
    */
   getProcessStatistics: async (id) => {
     try {
-      const response = await apiClient.get(`/api/processes/${id}/statistics`);
+      const response = await apiClient.get(`${PROCESSES_BASE_URL}/${id}/statistics`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching process statistics for ${id}:`, error);
@@ -111,7 +113,7 @@ const processService = {
    */
   getProcessComments: async (id) => {
     try {
-      const response = await apiClient.get(`/api/processes/${id}/comments`);
+      const response = await apiClient.get(`${PROCESSES_BASE_URL}/${id}/comments`);
       return response.data.data || response.data;
     } catch (error) {
       console.error(`Error fetching comments for process ${id}:`, error);
@@ -128,7 +130,7 @@ const processService = {
   addProcessComment: async (id, comment) => {
     try {
       const response = await apiClient.post(
-        `/api/processes/${id}/comments`, 
+        `${PROCESSES_BASE_URL}/${id}/comments`, 
         { comment }
       );
       return response.data;
@@ -147,7 +149,7 @@ const processService = {
   deleteProcessComment: async (id, commentId) => {
     try {
       const response = await apiClient.delete(
-        `/api/processes/${id}/comments/${commentId}`
+        `${PROCESSES_BASE_URL}/${id}/comments/${commentId}`
       );
       return response.data;
     } catch (error) {

@@ -3,10 +3,7 @@ import apiClient from './apiClient';
 const auditService = {
   getAuditorReports: async (status = null) => {
     try {
-      let url = '/api/audits/reports';
-      if (status) {
-        url += `?status=${status}`;
-      }
+      const url = '/api/audit/reports';
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
@@ -16,7 +13,7 @@ const auditService = {
 
   getAuditReportById: async (reportId) => {
     try {
-      const response = await apiClient.get(`/api/audits/reports/${reportId}`);
+      const response = await apiClient.get(`/api/audit/reports/${reportId}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -25,7 +22,7 @@ const auditService = {
 
   createAuditReport: async (reportData) => {
     try {
-      const response = await apiClient.post('/api/audits/reports', reportData);
+      const response = await apiClient.post('/api/audit/reports', reportData);
       return response.data;
     } catch (error) {
       throw error;
@@ -34,7 +31,7 @@ const auditService = {
 
   updateAuditReport: async (reportId, reportData) => {
     try {
-      const response = await apiClient.put(`/api/audits/reports/${reportId}`, reportData);
+      const response = await apiClient.put(`/api/audit/reports/${reportId}`, reportData);
       return response.data;
     } catch (error) {
       throw error;
@@ -42,17 +39,12 @@ const auditService = {
   },
 
   addReportComment: async (reportId, content) => {
-    try {
-      const response = await apiClient.post(`/api/audits/reports/${reportId}/comments`, { content });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    throw new Error('El backend no tiene un endpoint para comentarios de informes de auditoria');
   },
 
   generateReportPdf: async (reportId) => {
     try {
-      const response = await apiClient.post(`/api/audits/reports/${reportId}/generate-pdf`);
+      const response = await apiClient.get(`/api/audit/reports/${reportId}/download`);
       return response.data;
     } catch (error) {
       throw error;
@@ -62,11 +54,7 @@ const auditService = {
   // Admin functions
   requestAudit: async (processId, title, description) => {
     try {
-      const response = await apiClient.post('/api/audits/request', {
-        process_id: processId,
-        title,
-        description
-      });
+      const response = await apiClient.post(`/api/audit/processes/${processId}/request-audit`);
       return response.data;
     } catch (error) {
       throw error;
@@ -74,17 +62,14 @@ const auditService = {
   },
 
   getAuditRequestsForAdmin: async () => {
-    try {
-      const response = await apiClient.get('/api/audits/admin/requests');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    throw new Error('El backend no tiene un endpoint para solicitudes de auditoria del administrador');
   },
 
   getAuditReportsForProcess: async (processId) => {
     try {
-      const response = await apiClient.get(`/api/audits/process/${processId}/reports`);
+      const response = await apiClient.get('/api/audit/reports', {
+        params: { process_id: processId },
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -143,32 +128,7 @@ const auditService = {
    * @returns {Promise} Promise with download URL or blob
    */
   exportAuditLogs: async (options = {}) => {
-    try {
-      const { format = 'pdf', ...filters } = options;
-      
-      const response = await apiClient.get(`/api/audit/export/${format}`, {
-        params: filters,
-        responseType: 'blob'
-      });
-      
-      // Create and trigger download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Set filename with current date
-      const date = new Date().toISOString().split('T')[0];
-      link.setAttribute('download', `audit_logs_${date}.${format === 'excel' ? 'xlsx' : format}`);
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error exporting audit logs:', error);
-      throw error;
-    }
+    throw new Error('El backend no tiene endpoints de exportacion PDF o Excel');
   },
 };
 

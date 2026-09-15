@@ -67,3 +67,7 @@ ehthumbs.db
 
 # Frontend / Node
 .eslintcache
+
+# SonarQube / coverage reports
+.scannerwork/
+coverage.xml
