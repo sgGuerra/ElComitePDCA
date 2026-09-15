@@ -7,7 +7,7 @@
  * @returns {string} Formatted error message
  */
 const formatApiError = (error, fallbackMessage = 'Ha ocurrido un error. Por favor, inténtelo de nuevo.') => {
-  if (error.response && error.response.data) {
+  if (error.response?.data) {
     const { message, errors } = error.response.data;
     
     // Return specific error message from API if available
@@ -29,7 +29,7 @@ const formatApiError = (error, fallbackMessage = 'Ha ocurrido un error. Por favo
  * @returns {Object|null} Object with field names as keys and error messages as values, or null
  */
 const handleValidationErrors = (error) => {
-  if (error.response && error.response.data && error.response.data.errors) {
+  if (error.response?.data?.errors) {
     const { errors } = error.response.data;
     
     // Create an object with field names as keys and error messages as values
@@ -60,7 +60,7 @@ const handleValidationErrors = (error) => {
  * @returns {boolean} True if it's an auth error
  */
 const isAuthError = (error) => {
-  return error.response && error.response.status === 401;
+  return error.response?.status === 401;
 };
 
 /**
@@ -69,7 +69,7 @@ const isAuthError = (error) => {
  * @returns {boolean} True if it's a permission error
  */
 const isPermissionError = (error) => {
-  return error.response && error.response.status === 403;
+  return error.response?.status === 403;
 };
 
 /**
@@ -78,7 +78,7 @@ const isPermissionError = (error) => {
  * @returns {boolean} True if it's a not found error
  */
 const isNotFoundError = (error) => {
-  return error.response && error.response.status === 404;
+  return error.response?.status === 404;
 };
 
 const errorService = {

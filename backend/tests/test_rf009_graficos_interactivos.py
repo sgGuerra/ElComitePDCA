@@ -567,3 +567,216 @@ class TestRendimientoCarga:
 
         assert response.status_code == 200
         assert elapsed < 5.0, f"Processes stats tardó {elapsed:.2f}s, excede 5s"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Upcoming Deadlines
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestUpcomingDeadlines:
+    """Cobertura del endpoint upcoming-deadlines y su modelo."""
+
+    @pytest.mark.asyncio
+    async def test_upcoming_deadlines_retorna_200(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deadline1.com", roles="admin"
+        )
+        process = await create_test_process(
+            name="Proceso Deadlines", created_by=admin["id"], leader_id=admin["id"]
+        )
+        await create_test_action(
+            process_id=process["id"], leader_id=admin["id"],
+            created_by=admin["id"], name="Con fecha límite",
+            status="pending", target_date="2099-12-31",
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/upcoming-deadlines",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+
+    @pytest.mark.asyncio
+    async def test_upcoming_deadlines_filtrado_por_proceso(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deadline2.com", roles="admin"
+        )
+        proc_a = await create_test_process(
+            name="Proceso A DL", created_by=admin["id"], leader_id=admin["id"]
+        )
+        proc_b = await create_test_process(
+            name="Proceso B DL", created_by=admin["id"], leader_id=admin["id"]
+        )
+        await create_test_action(
+            process_id=proc_a["id"], leader_id=admin["id"],
+            created_by=admin["id"], name="DL en A",
+            status="pending", target_date="2099-06-15",
+        )
+        await create_test_action(
+            process_id=proc_b["id"], leader_id=admin["id"],
+            created_by=admin["id"], name="DL en B",
+            status="pending", target_date="2099-06-15",
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            f"/api/statistics/upcoming-deadlines?process_id={proc_a['id']}",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        # Todas las acciones devueltas deben pertenecer al proceso A
+        for action in data:
+            assert action["process_id"] == proc_a["id"]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Actions Over Time – filtros adicionales
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestActionsOverTimeFiltrosAdicionales:
+    """Cubrir ramas quarter, year y filtro por process_id."""
+
+    @pytest.mark.asyncio
+    async def test_actions_over_time_filtro_trimestre(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@otq.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/actions-over-time?date_range=quarter",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+
+    @pytest.mark.asyncio
+    async def test_actions_over_time_filtro_anio(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@oty.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/actions-over-time?date_range=year",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+
+    @pytest.mark.asyncio
+    async def test_actions_over_time_filtrado_por_proceso(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@otpid.com", roles="admin"
+        )
+        process = await create_test_process(
+            name="Proceso OT", created_by=admin["id"], leader_id=admin["id"]
+        )
+        await create_test_action(
+            process_id=process["id"], leader_id=admin["id"],
+            created_by=admin["id"], name="Acción OT",
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            f"/api/statistics/actions-over-time?process_id={process['id']}",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Completion Rate – filtros adicionales
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestCompletionRateFiltrosAdicionales:
+    """Cubrir ramas week, quarter y year en completion-rate."""
+
+    @pytest.mark.asyncio
+    async def test_completion_rate_filtro_semana(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@crw.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/completion-rate?date_range=week",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        assert "rate" in response.json()
+
+    @pytest.mark.asyncio
+    async def test_completion_rate_filtro_trimestre(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@crq.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/completion-rate?date_range=quarter",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        assert "rate" in response.json()
+
+    @pytest.mark.asyncio
+    async def test_completion_rate_filtro_anio(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@cry.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/completion-rate?date_range=year",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        assert "rate" in response.json()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Process Statistics – include_zero_counts
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestProcessStatisticsZeroCounts:
+    """Cubrir la rama include_zero_counts en get_process_statistics."""
+
+    @pytest.mark.asyncio
+    async def test_process_statistics_incluye_cero_acciones(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@pszero.com", roles="admin"
+        )
+        # Crear proceso sin acciones
+        await create_test_process(
+            name="Proceso Vacío", created_by=admin["id"], leader_id=admin["id"]
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/processes?include_zero_counts=true",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        # Debe incluir el proceso con 0 acciones
+        assert any(p["total_actions"] == 0 for p in data)

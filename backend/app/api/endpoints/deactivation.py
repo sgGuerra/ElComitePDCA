@@ -37,7 +37,7 @@ async def request_account_deactivation(
         return request
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=str(e)
         )
 
@@ -51,9 +51,9 @@ async def get_account_deactivation_requests(
     Get all deactivation requests.
     Only admin users can access this endpoint.
     """
-    if current_user["role"] != settings.ROLE_ADMIN:
+    if current_user["active_role"] != settings.ROLE_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para ver las solicitudes de desactivación"
         )
     
@@ -62,7 +62,7 @@ async def get_account_deactivation_requests(
         return requests
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=str(e)
         )
 
@@ -76,9 +76,9 @@ async def get_deactivation_request_details(
     Get detailed information about a deactivation request.
     Only admin users can access this endpoint.
     """
-    if current_user["role"] != settings.ROLE_ADMIN:
+    if current_user["active_role"] != settings.ROLE_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para ver los detalles de la solicitud"
         )
     
@@ -88,7 +88,7 @@ async def get_deactivation_request_details(
         
         if not request:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Solicitud no encontrada"
             )
         
@@ -103,7 +103,7 @@ async def get_deactivation_request_details(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=str(e)
         )
 
@@ -118,9 +118,9 @@ async def process_account_deactivation_request(
     Process a deactivation request.
     Only admin users can process deactivation requests.
     """
-    if current_user["role"] != settings.ROLE_ADMIN:
+    if current_user["active_role"] != settings.ROLE_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para procesar solicitudes de desactivación"
         )
     
@@ -134,7 +134,7 @@ async def process_account_deactivation_request(
         
         if not processed_request:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Solicitud no encontrada"
             )
         
@@ -150,6 +150,6 @@ async def process_account_deactivation_request(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=str(e)
         )

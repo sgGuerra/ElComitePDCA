@@ -37,7 +37,7 @@ const ResourceManager = ({ actionId }) => {
     e.preventDefault();
     
     const fileInput = fileInputRef.current;
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    if (!fileInput?.files?.length) {
       showError('Por favor, selecciona un archivo');
       return;
     }
@@ -128,7 +128,7 @@ const ResourceManager = ({ actionId }) => {
     
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${sizes[i]}`;
+    return `${Number.parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   const formatDate = (dateString) => {

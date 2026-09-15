@@ -53,7 +53,7 @@ async def add_resource_to_action(
         
         return resource
     except Exception as e:
-        logger.error(f"Error adding resource to action: {e}")
+        logger.exception(f"Error adding resource to action: {e}")
         raise
 
 
@@ -73,7 +73,7 @@ async def get_action_resources(action_id: int) -> List[Dict[str, Any]]:
         
         return resources
     except Exception as e:
-        logger.error(f"Error getting action resources: {e}")
+        logger.exception(f"Error getting action resources: {e}")
         raise
 
 
@@ -92,7 +92,7 @@ async def get_resource_by_id(resource_id: int) -> Optional[Dict[str, Any]]:
         
         return resource
     except Exception as e:
-        logger.error(f"Error getting resource by ID: {e}")
+        logger.exception(f"Error getting resource by ID: {e}")
         raise
 
 
@@ -119,5 +119,5 @@ async def delete_action_resource(resource_id: int) -> bool:
         
         return True
     except Exception as e:
-        logger.error(f"Error deleting action resource: {e}")
+        logger.exception(f"Error deleting action resource: {e}")
         raise

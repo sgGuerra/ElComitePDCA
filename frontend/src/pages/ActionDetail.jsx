@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   FaArrowLeft, FaEdit, FaRegClock, FaRegUser, FaRegFileAlt, 
-  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt, FaHistory, FaComment
+  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt
 } from 'react-icons/fa';
 import actionService from '../services/actionService';
 import fileService from '../services/fileService';
@@ -12,7 +12,6 @@ import userService from '../services/userService';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
-import ResourceManager from '../components/ResourceManager';
 import CommentSection from '../components/CommentSection';
 
 const ActionDetail = () => {

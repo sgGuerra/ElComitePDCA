@@ -20,6 +20,8 @@ from app.models.deactivation import create_deactivation_request
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+USER_NOT_FOUND = "Usuario no encontrado"
+
 
 @router.get("/", response_model=List[User])
 async def read_users(
@@ -121,7 +123,7 @@ async def get_process_leaders_list(
         return active_leaders
     
     except Exception as e:
-        logger.error(f"Error getting process leaders: {str(e)}", exc_info=True)
+        logger.exception(f"Error getting process leaders: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener líderes de procesos: {str(e)}"
@@ -148,7 +150,7 @@ async def read_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail=USER_NOT_FOUND
         )
     
     return user
@@ -183,7 +185,7 @@ async def update_user_info(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail=USER_NOT_FOUND
         )
     
     return user
@@ -232,7 +234,7 @@ async def deactivate_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail=USER_NOT_FOUND
         )
     
     return {"success": True, "message": "Usuario desactivado correctamente"}
