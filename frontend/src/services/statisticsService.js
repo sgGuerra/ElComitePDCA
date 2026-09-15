@@ -19,7 +19,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get statistics for a specific process
    * @param {number} processId - Process ID
@@ -34,7 +34,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get actions grouped by status
    * @param {Object} params - Optional query parameters
@@ -49,7 +49,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get actions grouped by type
    * @param {Object} params - Optional query parameters
@@ -64,7 +64,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get the completion rate of actions
    * @param {Object} params - Optional query parameters
@@ -79,7 +79,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get actions with upcoming deadlines
    * @param {Object} params - Optional query parameters (limit, processId, dateRange)
@@ -94,7 +94,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get actions over time data for trend analysis
    * @param {Object} params - Optional query parameters (processId, dateRange, groupBy)
@@ -109,7 +109,7 @@ const statisticsService = {
       throw error;
     }
   },
-  
+
   /**
    * Get performance indicators for the dashboard
    * @param {Object} params - Optional query parameters
@@ -135,7 +135,7 @@ const generateDummyTrendData = (dateRange) => {
   const now = new Date();
   const data = [];
   let points = 0;
-  
+
   switch (dateRange) {
     case 'week':
       points = 7;
@@ -152,11 +152,16 @@ const generateDummyTrendData = (dateRange) => {
     default:
       points = 30;
   }
-  
+
+  function secureRandom() {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return array[0] / (0xFFFFFFFF + 1);
+  }
   for (let i = points - 1; i >= 0; i--) {
     const date = new Date(now);
     let dateStr = '';
-    
+
     if (dateRange === 'year') {
       date.setMonth(date.getMonth() - i);
       dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -167,19 +172,18 @@ const generateDummyTrendData = (dateRange) => {
       date.setDate(date.getDate() - i);
       dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     }
-    
-    const completedBase = Math.floor(Math.random() * 5) + 3;
-    const pendingBase = Math.floor(Math.random() * 7) + 5;
-    const overdueBase = Math.floor(Math.random() * 3);
-    
+    const completedBase = Math.floor(secureRandom() * 5) + 3;
+    const pendingBase = Math.floor(secureRandom() * 7) + 5;
+    const overdueBase = Math.floor(secureRandom() * 3);
+
     data.push({
       date: dateStr,
-      completed: completedBase + Math.floor(Math.random() * 3),
-      pending: pendingBase + Math.floor(Math.random() * 4),
-      overdue: overdueBase + Math.floor(Math.random() * 2)
+      completed: completedBase + Math.floor(secureRandom() * 3),
+      pending: pendingBase + Math.floor(secureRandom() * 4),
+      overdue: overdueBase + Math.floor(secureRandom() * 2)
     });
   }
-  
+
   return data;
 };
 
