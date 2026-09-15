@@ -32,7 +32,7 @@ async def create_notification(
         
         return notification
     except Exception as e:
-        logger.error(f"Error creating notification: {str(e)}")
+        logger.exception("Error creating notification")
         raise
 
 
@@ -45,7 +45,7 @@ async def get_notification_by_id(notification_id: int) -> Optional[Dict[str, Any
         )
         return notification
     except Exception as e:
-        logger.error(f"Error getting notification by ID: {str(e)}")
+        logger.exception("Error getting notification by ID")
         return None
 
 
@@ -69,7 +69,7 @@ async def get_notifications_by_user(
         notifications = await get_all(query, tuple(params))
         return notifications
     except Exception as e:
-        logger.error(f"Error getting notifications for user: {str(e)}")
+        logger.exception("Error getting notifications for user")
         return []
 
 
@@ -90,40 +90,39 @@ async def mark_notification_as_read(notification_id: int) -> Optional[Dict[str, 
         # Return updated notification
         return await get_notification_by_id(notification_id)
     except Exception as e:
-        logger.error(f"Error marking notification as read: {str(e)}")
+        logger.exception("Error marking notification as read")
         return None
 
 
 async def mark_all_notifications_as_read(user_id: int) -> int:
-    """Mark all notifications for a user as read."""
+    """Marcar notis como leidas"""
     try:
-        result = await execute(
-            "UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0",
-            (user_id,)
-        )
         
-        # Return number of affected rows (not directly available in this implementation)
-        # Count unread notifications before update
         unread_count = await get_one(
             "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0",
             (user_id,)
         )
-        
+
+        await execute(
+            "UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0",
+            (user_id,)
+        )
+
         return unread_count["count"] if unread_count else 0
     except Exception as e:
-        logger.error(f"Error marking all notifications as read: {str(e)}")
+        logger.exception("Error al marcar las notificaciones como leidas")
         return 0
 
 
 async def delete_notification(notification_id: int) -> bool:
-    """Delete a notification."""
+    """Eliminar una notificacion"""
     try:
-        # Check if notification exists
+        # Existe?
         notification = await get_notification_by_id(notification_id)
         if not notification:
             return False
         
-        # Delete notification
+        # Eliminamos
         await execute(
             "DELETE FROM notifications WHERE id = ?",
             (notification_id,)
@@ -131,7 +130,7 @@ async def delete_notification(notification_id: int) -> bool:
         
         return True
     except Exception as e:
-        logger.error(f"Error deleting notification: {str(e)}")
+        logger.exception("Error deleting notification")
         return False
 
 
@@ -152,7 +151,7 @@ async def has_unread_notification(
         )
         return existing is not None
     except Exception as e:
-        logger.error(f"Error checking for unread notification: {str(e)}")
+        logger.exception("Error checking for unread notification")
         return False
 
 
@@ -166,5 +165,5 @@ async def get_unread_notification_count(user_id: int) -> int:
         
         return result["count"] if result else 0
     except Exception as e:
-        logger.error(f"Error getting unread notification count: {str(e)}")
+        logger.exception("Error getting unread notification count")
         return 0

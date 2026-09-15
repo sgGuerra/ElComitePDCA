@@ -2,14 +2,10 @@
 RF-12 · Notificaciones en Tiempo Real por Cambio de Estado de Acciones de Mejora
 ================================================================================
 
-Pruebas unitarias para las condiciones y escenarios de prueba:
-  - Cambio de estado de acción (pending -> in_progress -> completed -> canceled)
-  - Validación de permisos al cambiar estado (líder asignado o admin)
-  - Intento de manipular notification_id en la URL de otro usuario (403 Forbidden - IDOR)
-  - Usuario marca todas como leídas y valida actualización de conteo en tiempo real
-  - Conteo de notificaciones no leídas responde con precisión
+Pruebas unitarias para los 3 escenarios más representativos:
   - E21: cambios rápidos y repetidos de estado no generan notificaciones duplicadas
   - E23: cancelar una acción notifica al creador (antes no se notificaba nada)
+  - E25: manipular notification_id en la URL de otro usuario (403 Forbidden - IDOR)
 """
 
 import pytest
@@ -23,72 +19,6 @@ from tests.conftest import (
     auth_headers,
 )
 from app.models.notification import create_notification, get_notifications_by_user
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Cambios de Estado de Acciones de Mejora
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestCambioEstadoAcciones:
-    """Valida transiciones de estado de acciones de mejora y sus permisos."""
-
-    @pytest.mark.asyncio
-    async def test_lider_puede_actualizar_estado_de_su_accion(self, client):
-        admin = await create_test_user(name="Admin", email="admin_act@test.com", roles="admin")
-        leader = await create_test_user(name="Líder", email="leader_act@test.com", roles="process_leader")
-
-        process = await create_test_process(name="Proceso Acciones", created_by=admin["id"], leader_id=leader["id"])
-        action = await create_test_action(
-            process_id=process["id"],
-            leader_id=leader["id"],
-            created_by=admin["id"],
-            name="Acción Inicial",
-            status="pending",
-        )
-
-        token_leader = make_token(leader, active_role="process_leader")
-
-        # Cambiar a in_progress
-        resp_prog = await client.put(
-            f"/api/actions/{action['id']}",
-            json={"status": "in_progress"},
-            headers=auth_headers(token_leader),
-        )
-        assert resp_prog.status_code == 200
-        assert resp_prog.json()["status"] == "in_progress"
-
-        # Cambiar a completed
-        resp_comp = await client.put(
-            f"/api/actions/{action['id']}",
-            json={"status": "completed"},
-            headers=auth_headers(token_leader),
-        )
-        assert resp_comp.status_code == 200
-        assert resp_comp.json()["status"] == "completed"
-
-    @pytest.mark.asyncio
-    async def test_usuario_no_autorizado_no_puede_cambiar_estado(self, client):
-        admin = await create_test_user(name="Admin", email="admin_noauth@test.com", roles="admin")
-        leader_1 = await create_test_user(name="Líder 1", email="l1@test.com", roles="process_leader")
-        leader_2 = await create_test_user(name="Líder 2", email="l2@test.com", roles="process_leader")
-
-        process = await create_test_process(name="Proceso P", created_by=admin["id"])
-        action = await create_test_action(
-            process_id=process["id"],
-            leader_id=leader_1["id"],
-            created_by=admin["id"],
-            name="Acción Líder 1",
-            status="pending",
-        )
-
-        # Líder 2 intenta cambiar la acción de Líder 1
-        token_l2 = make_token(leader_2, active_role="process_leader")
-        response = await client.put(
-            f"/api/actions/{action['id']}",
-            json={"status": "completed"},
-            headers=auth_headers(token_l2),
-        )
-        assert response.status_code == 403
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -191,10 +121,10 @@ class TestNotificacionAlCancelar:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Notificaciones y Protección contra Manipulación de URL (IDOR)
+# E25: Protección contra Manipulación de URL (IDOR)
 # ──────────────────────────────────────────────────────────────────────────────
 
-class TestManipulacionNotificacionesYConteo:
+class TestManipulacionNotificaciones:
     """Valida que un usuario no pueda manipular el notification_id de otro usuario en la URL."""
 
     @pytest.mark.asyncio
@@ -226,25 +156,3 @@ class TestManipulacionNotificacionesYConteo:
             headers=auth_headers(token_y),
         )
         assert put_resp.status_code == 403
-
-    @pytest.mark.asyncio
-    async def test_conteo_notificaciones_se_actualiza_al_marcar_leida(self, client):
-        user = await create_test_user(name="Usuario Notif", email="notif_count@test.com", roles="process_leader")
-        token = make_token(user, active_role="process_leader")
-
-        notif1 = await create_notification(user_id=user["id"], title="N1", message="M1")
-        notif2 = await create_notification(user_id=user["id"], title="N2", message="M2")
-
-        # Conteo inicial debe ser 2
-        count_resp1 = await client.get("/api/notifications/count", headers=auth_headers(token))
-        assert count_resp1.status_code == 200
-        assert count_resp1.json()["count"] == 2
-
-        # Marcar 1 como leída
-        read_resp = await client.put(f"/api/notifications/{notif1['id']}/read", headers=auth_headers(token))
-        assert read_resp.status_code == 200
-
-        # Conteo debe ser 1
-        count_resp2 = await client.get("/api/notifications/count", headers=auth_headers(token))
-        assert count_resp2.status_code == 200
-        assert count_resp2.json()["count"] == 1

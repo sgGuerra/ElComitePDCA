@@ -1,15 +1,15 @@
 // frontend/src/components/Header.jsx
 
 import React, { useState, useEffect } from 'react';
-import { FaBell, FaCog, FaUserCircle, FaSignOutAlt, FaExchangeAlt } from 'react-icons/fa';
+import { FaBell, FaCog, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import notificationService from '../services/notificationService';
 import actionService from '../services/actionService';
 import RoleSelector from './RoleSelector';
 
-// Cross-tab sync: notify other open tabs immediately when notifications change
-// here, instead of waiting up to 60s for the next poll (E24).
+// Sincronía entre pestañas: le avisa a las demás pestañas abiertas apenas cambia algo
+// acá, en vez de hacerlas esperar hasta 60s al siguiente polling (E24).
 const notificationsChannel =
   typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('notifications') : null;
 
@@ -37,7 +37,7 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
     // Poll for new notifications every minute
     const interval = setInterval(fetchUnreadCount, 60000);
 
-    // Refresh immediately when another tab reports a notification change
+    // Se refresca al toque cuando otra pestaña avisa que cambió algo en las notificaciones
     if (notificationsChannel) {
       notificationsChannel.onmessage = () => fetchUnreadCount();
     }
@@ -131,6 +131,12 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
     logout();
   };
 
+  const getRoleLabel = (role) => {
+    if (role === 'admin') return 'Administrador';
+    if (role === 'process_leader') return 'Líder de Proceso';
+    return 'Auditor';
+  };
+
   return (
     <header className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm mb-6">
       <nav className="flex space-x-2">
@@ -212,38 +218,36 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
                   notifications.map(notification => (
                     <div
                       key={notification.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleNotificationNavigate(notification)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleNotificationNavigate(notification);
-                        }
-                      }}
-                      className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
+                      className={`relative hover:bg-gray-50 transition-colors ${notification.read ? 'bg-white' : 'bg-blue-50'}`}
                     >
-                      <div className="flex justify-between">
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        {!notification.read && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
-                            className="text-xs text-primary hover:text-primary/80"
-                          >
-                            Marcar como leída
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-700 mt-1">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(notification.created_at).toLocaleString('es-ES', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleNotificationNavigate(notification)}
+                        className="w-full text-left p-4"
+                      >
+                        <div className="flex justify-between pr-20">
+                          <p className="font-medium text-sm">{notification.title}</p>
+                        </div>
+                        <p className="text-sm text-gray-700 mt-1">{notification.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(notification.created_at).toLocaleString('es-ES', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </button>
+                      {!notification.read && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          className="absolute top-4 right-4 text-xs text-primary hover:text-primary/80"
+                        >
+                          Marcar como leída
+                        </button>
+                      )}
                     </div>
                   ))
                 )}
@@ -285,7 +289,7 @@ const Header = ({ activeTab, setActiveTab, tabs }) => {
                 <p className="font-medium text-gray-900">{user?.name}</p>
                 <p className="text-sm text-gray-600">{user?.email}</p>
                 <div className="mt-2 bg-gray-50 text-xs py-1 px-2 rounded-md text-gray-700 inline-block">
-                  Rol: {user?.role === 'admin' ? 'Administrador' : user?.role === 'process_leader' ? 'Líder de Proceso' : 'Auditor'}
+                  Rol: {getRoleLabel(user?.role)}
                 </div>
               </div>
               <div className="py-1">

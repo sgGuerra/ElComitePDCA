@@ -10,6 +10,7 @@ const auditService = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
+      console.error('Error fetching auditor reports:', error);
       throw error;
     }
   },
@@ -19,6 +20,7 @@ const auditService = {
       const response = await apiClient.get(`/api/audits/reports/${reportId}`);
       return response.data;
     } catch (error) {
+      console.error('Error fetching audit report:', error);
       throw error;
     }
   },
@@ -28,6 +30,7 @@ const auditService = {
       const response = await apiClient.post('/api/audits/reports', reportData);
       return response.data;
     } catch (error) {
+      console.error('Error creating audit report:', error);
       throw error;
     }
   },
@@ -37,6 +40,7 @@ const auditService = {
       const response = await apiClient.put(`/api/audits/reports/${reportId}`, reportData);
       return response.data;
     } catch (error) {
+      console.error('Error updating audit report:', error);
       throw error;
     }
   },
@@ -46,6 +50,7 @@ const auditService = {
       const response = await apiClient.post(`/api/audits/reports/${reportId}/comments`, { content });
       return response.data;
     } catch (error) {
+      console.error('Error adding report comment:', error);
       throw error;
     }
   },
@@ -55,6 +60,7 @@ const auditService = {
       const response = await apiClient.post(`/api/audits/reports/${reportId}/generate-pdf`);
       return response.data;
     } catch (error) {
+      console.error('Error generating report PDF:', error);
       throw error;
     }
   },
@@ -69,6 +75,7 @@ const auditService = {
       });
       return response.data;
     } catch (error) {
+      console.error('Error requesting audit:', error);
       throw error;
     }
   },
@@ -78,6 +85,7 @@ const auditService = {
       const response = await apiClient.get('/api/audits/admin/requests');
       return response.data;
     } catch (error) {
+      console.error('Error fetching audit requests for admin:', error);
       throw error;
     }
   },
@@ -87,6 +95,7 @@ const auditService = {
       const response = await apiClient.get(`/api/audits/process/${processId}/reports`);
       return response.data;
     } catch (error) {
+      console.error('Error fetching audit reports for process:', error);
       throw error;
     }
   },
@@ -162,8 +171,8 @@ const auditService = {
       
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      
+      link.remove();
+
       return { success: true };
     } catch (error) {
       console.error('Error exporting audit logs:', error);

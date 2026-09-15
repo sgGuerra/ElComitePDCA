@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.assignment import AssignmentCreate, AssignmentUpdate
@@ -43,7 +43,7 @@ async def assign_leader_to_process(assignment_data: AssignmentCreate, admin_id: 
         
         return assignment
     except Exception as e:
-        logger.error(f"Error assigning leader to process: {e}")
+        logger.exception("Error assigning leader to process")
         raise
 
 
@@ -56,7 +56,7 @@ async def remove_leader_from_process(process_id: int, leader_id: int) -> bool:
         )
         return True
     except Exception as e:
-        logger.error(f"Error removing leader from process: {e}")
+        logger.exception("Error removing leader from process")
         raise
 
 
@@ -84,13 +84,13 @@ async def get_process_leaders(process_id: int) -> List[Dict[str, Any]]:
                 
             # Ensure created_at and updated_at fields have values
             if 'created_at' not in leader or leader['created_at'] is None:
-                leader['created_at'] = datetime.utcnow()
+                leader['created_at'] = datetime.now(timezone.utc)
             if 'updated_at' not in leader or leader['updated_at'] is None:
-                leader['updated_at'] = datetime.utcnow()
+                leader['updated_at'] = datetime.now(timezone.utc)
         
         return leaders
     except Exception as e:
-        logger.error(f"Error getting process leaders: {e}")
+        logger.exception("Error getting process leaders")
         raise
 
 
@@ -108,7 +108,7 @@ async def get_leader_processes(leader_id: int) -> List[Dict[str, Any]]:
         )
         return processes
     except Exception as e:
-        logger.error(f"Error getting leader processes: {e}")
+        logger.exception("Error getting leader processes")
         raise
 
 
@@ -139,5 +139,5 @@ async def transfer_process_leadership(process_id: int, old_leader_id: int, new_l
         
         return True
     except Exception as e:
-        logger.error(f"Error transferring process leadership: {e}")
+        logger.exception("Error transferring process leadership")
         raise

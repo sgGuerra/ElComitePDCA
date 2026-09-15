@@ -5,6 +5,7 @@ from app.core.auth import get_current_user, verify_admin, verify_auditor, settin
 from app.models.process import get_all_processes, get_process_by_id, update_process
 from app.models.user import get_users_by_role
 from app.models.notification import create_notification
+from app.middleware.upload import delete_file
 from app.schemas.process import Process, ProcessUpdate
 from app.schemas.audit import AuditReport, AuditReportCreate, AuditReportUpdate # Added AuditReportUpdate
 from app.models.audit import (
@@ -17,7 +18,13 @@ from app.models.audit import (
 
 router = APIRouter()
 
-@router.post("/processes/{process_id}/request-audit", response_model=Process)
+AUDIT_REPORT_NOT_FOUND = "Informe de auditoría no encontrado"
+
+@router.post(
+    "/processes/{process_id}/request-audit",
+    response_model=Process,
+    responses={404: {"description": "Proceso no encontrado"}, 500: {"description": "No se pudo actualizar el estado del proceso"}},
+)
 async def request_process_audit(
     process_id: int,
     current_user: dict = Depends(verify_admin) # Only admin can request an audit
@@ -86,7 +93,11 @@ async def list_audit_reports(
     reports = await get_audit_reports(process_id=process_id, auditor_id=auditor_id_filter)
     return reports
 
-@router.get("/reports/{report_id}", response_model=AuditReport)
+@router.get(
+    "/reports/{report_id}",
+    response_model=AuditReport,
+    responses={404: {"description": AUDIT_REPORT_NOT_FOUND}, 403: {"description": "No tienes permisos para ver este informe"}},
+)
 async def get_single_audit_report(
     report_id: int,
     current_user: dict = Depends(get_current_user)
@@ -97,7 +108,7 @@ async def get_single_audit_report(
     """
     report = await get_audit_report_by_id(report_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
 
     is_admin = settings.ROLE_ADMIN in current_user["roles"]
     is_report_author = report["auditor_id"] == current_user["id"]
@@ -107,7 +118,11 @@ async def get_single_audit_report(
     
     return report
 
-@router.put("/reports/{report_id}", response_model=AuditReport)
+@router.put(
+    "/reports/{report_id}",
+    response_model=AuditReport,
+    responses={404: {"description": AUDIT_REPORT_NOT_FOUND}, 403: {"description": "No tienes permisos para actualizar este informe"}},
+)
 async def update_existing_audit_report(
     report_id: int,
     report_in: AuditReportUpdate,
@@ -118,7 +133,7 @@ async def update_existing_audit_report(
     """
     existing_report = await get_audit_report_by_id(report_id)
     if not existing_report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
     
     if existing_report["auditor_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para actualizar este informe")
@@ -133,7 +148,11 @@ async def update_existing_audit_report(
         raise HTTPException(status_code=404, detail="No se pudo actualizar el informe") 
     return updated_report
 
-@router.delete("/reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/reports/{report_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"description": AUDIT_REPORT_NOT_FOUND}, 403: {"description": "No tienes permisos para eliminar este informe"}},
+)
 async def delete_existing_audit_report(
     report_id: int,
     current_user: dict = Depends(get_current_user) # Admin or auditor who authored it
@@ -141,7 +160,7 @@ async def delete_existing_audit_report(
     """Deletes an audit report. Only admin or the authoring auditor can delete."""
     report = await get_audit_report_by_id(report_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
 
     is_admin = settings.ROLE_ADMIN in current_user["roles"]
     is_report_author = report["auditor_id"] == current_user["id"]
@@ -149,16 +168,19 @@ async def delete_existing_audit_report(
     if not (is_admin or (settings.ROLE_AUDITOR in current_user["roles"] and is_report_author)):
         raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este informe")
 
-    # TODO: Consider deleting the associated file if file_path exists and is managed by the app
-    # from app.middleware.upload import delete_file
-    # if report.get("file_path"):
-    #     delete_file(report["file_path"])
+    if report.get("file_path"):
+        delete_file(report["file_path"])
 
     await delete_audit_report(report_id)
-    return
 
 # Placeholder for PDF download - actual PDF generation/serving is more complex
-@router.get("/reports/{report_id}/download")
+@router.get(
+    "/reports/{report_id}/download",
+    responses={
+        404: {"description": f"{AUDIT_REPORT_NOT_FOUND}, o no hay archivo PDF disponible"},
+        403: {"description": "No tienes permisos para descargar este informe"},
+    },
+)
 async def download_audit_report_pdf(
     report_id: int,
     current_user: dict = Depends(get_current_user)
@@ -166,7 +188,7 @@ async def download_audit_report_pdf(
     """Allows download of the audit report PDF if available."""
     report = await get_audit_report_by_id(report_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
 
     is_admin = settings.ROLE_ADMIN in current_user["roles"]
     is_report_author = report["auditor_id"] == current_user["id"]

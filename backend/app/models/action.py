@@ -44,7 +44,7 @@ async def create_action(action_data: ActionCreate, user_id: int) -> Dict[str, An
         action = await get_action_by_id(action_id)
         return action
     except Exception as e:
-        logger.error(f"Error creating action: {str(e)}")
+        logger.exception("Error creating action")
         raise
 
 
@@ -68,7 +68,7 @@ async def get_action_by_id(action_id: int) -> Optional[Dict[str, Any]]:
         )
         return action
     except Exception as e:
-        logger.error(f"Error getting action by ID: {str(e)}")
+        logger.exception("Error getting action by ID")
         return None
 
 
@@ -92,7 +92,7 @@ async def get_actions_by_process(process_id: int) -> List[Dict[str, Any]]:
         )
         return actions
     except Exception as e:
-        logger.error(f"Error getting actions by process: {str(e)}")
+        logger.exception("Error getting actions by process")
         return []
 
 
@@ -116,7 +116,7 @@ async def get_actions_by_leader(leader_id: int) -> List[Dict[str, Any]]:
         )
         return actions
     except Exception as e:
-        logger.error(f"Error getting actions by leader: {str(e)}")
+        logger.exception("Error getting actions by leader")
         return []
 
 
@@ -163,18 +163,17 @@ async def update_action(action_id: int, action_data: ActionUpdate) -> Optional[D
         if status_changed and "status" in update_fields:
             new_status = update_fields["status"]
             await _handle_status_change_notification(
-                action_id, 
-                existing_action["name"], 
-                existing_action["leader_id"], 
+                action_id,
+                existing_action["name"],
+                existing_action["leader_id"],
                 existing_action["created_by"],
-                old_status, 
                 new_status
             )
         
         # Return updated action
         return await get_action_by_id(action_id)
     except Exception as e:
-        logger.error(f"Error updating action: {str(e)}")
+        logger.exception("Error updating action")
         return None
 
 
@@ -190,7 +189,7 @@ async def delete_action(action_id: int) -> bool:
         await execute("DELETE FROM actions WHERE id = ?", (action_id,))
         return True
     except Exception as e:
-        logger.error(f"Error deleting action: {str(e)}")
+        logger.exception("Error deleting action")
         return False
 
 
@@ -245,7 +244,7 @@ async def get_action_statistics(process_id: Optional[int] = None) -> Dict[str, A
             "completion_rate": round(completion_rate, 2)
         }
     except Exception as e:
-        logger.error(f"Error getting action statistics: {str(e)}")
+        logger.exception("Error getting action statistics")
         return {
             "total": 0,
             "completed": 0,
@@ -311,7 +310,7 @@ async def get_upcoming_deadlines(limit: int = 5, process_id: Optional[int] = Non
         actions = await get_all(query, tuple(params))
         return actions
     except Exception as e:
-        logger.error(f"Error getting upcoming deadlines: {str(e)}")
+        logger.exception("Error getting upcoming deadlines")
         return []
 
 
@@ -354,17 +353,16 @@ async def check_for_overdue_actions():
         
         return len(overdue_actions)
     except Exception as e:
-        logger.error(f"Error checking for overdue actions: {str(e)}")
+        logger.exception("Error checking for overdue actions")
         return 0
 
 
 # Helper function for handling notifications on status changes
 async def _handle_status_change_notification(
-    action_id: int, 
-    action_name: str, 
-    leader_id: int, 
-    created_by: int, 
-    old_status: str, 
+    action_id: int,
+    action_name: str,
+    leader_id: int,
+    created_by: int,
     new_status: str
 ):
     """Create notifications for status changes."""
@@ -373,7 +371,7 @@ async def _handle_status_change_notification(
             # Notify creator if different from leader
             if created_by != leader_id:
                 title = "Acción completada"
-                # Avoid duplicate notifications from rapid repeated status changes
+                # Evita notificaciones duplicadas si el estado cambia varias veces seguidas
                 if not await has_unread_notification(created_by, title, "action", action_id):
                     await create_notification(
                         user_id=created_by,
@@ -393,8 +391,8 @@ async def _handle_status_change_notification(
                     related_id=action_id
                 )
         elif new_status == "canceled":
-            # Notify creator (if different) that the action was canceled, so other
-            # leaders aren't left assuming it's still active
+            # Avisarle al creador (si es distinto del líder) que la acción se canceló,
+            # para que otros líderes no se queden pensando que sigue activa
             if created_by != leader_id:
                 await create_notification(
                     user_id=created_by,
@@ -404,4 +402,4 @@ async def _handle_status_change_notification(
                     related_id=action_id
                 )
     except Exception as e:
-        logger.error(f"Error creating status change notification: {str(e)}")
+        logger.exception("Error creating status change notification")

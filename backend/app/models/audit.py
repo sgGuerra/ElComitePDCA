@@ -42,7 +42,7 @@ async def create_audit_report(
         
         return report
     except Exception as e:
-        logger.error(f"Error creating audit report: {e}")
+        logger.exception("Error creating audit report")
         raise
 
 
@@ -63,7 +63,7 @@ async def get_audit_report_by_id(report_id: int) -> Optional[Dict[str, Any]]:
         
         return report
     except Exception as e:
-        logger.error(f"Error getting audit report by ID: {e}")
+        logger.exception("Error getting audit report by ID")
         raise
 
 
@@ -102,7 +102,7 @@ async def get_audit_reports(
         
         return reports
     except Exception as e:
-        logger.error(f"Error getting audit reports: {e}")
+        logger.exception("Error getting audit reports")
         raise
 
 
@@ -149,7 +149,7 @@ async def update_audit_report(
         # Get updated report
         return await get_audit_report_by_id(report_id)
     except Exception as e:
-        logger.error(f"Error updating audit report: {e}")
+        logger.exception("Error updating audit report")
         raise
 
 
@@ -162,5 +162,5 @@ async def delete_audit_report(report_id: int) -> bool:
         )
         return True
     except Exception as e:
-        logger.error(f"Error deleting audit report: {e}")
+        logger.exception("Error deleting audit report")
         raise
