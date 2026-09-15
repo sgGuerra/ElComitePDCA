@@ -53,8 +53,8 @@ const ProcessList = () => {
     // Apply search filter
     return (
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
-      (p.owner && p.owner.toLowerCase().includes(search.toLowerCase()))
+      (p.description?.toLowerCase().includes(search.toLowerCase())) ||
+      (p.owner?.toLowerCase().includes(search.toLowerCase()))
     );
   });
 

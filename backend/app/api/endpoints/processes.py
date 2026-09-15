@@ -16,6 +16,8 @@ from app.schemas.process import Process, ProcessCreate, ProcessUpdate, ProcessWi
 
 router = APIRouter()
 
+PROCESS_NOT_FOUND = "Proceso no encontrado"
+
 
 @router.get("/", response_model=List[Process])
 async def read_processes(
@@ -84,7 +86,7 @@ async def read_process(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Check permissions
@@ -137,7 +139,7 @@ async def update_process_info(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Check permissions - only admin or creator can update
@@ -167,7 +169,7 @@ async def delete_process_by_id(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Delete process
@@ -188,7 +190,7 @@ async def get_process_assigned_leaders(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     leaders = await get_process_leaders(process_id)
@@ -209,7 +211,7 @@ async def get_process_detailed_statistics(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Get basic statistics

@@ -92,8 +92,8 @@ const ActionsList = () => {
     // Apply search filter
     return (
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      (a.what && a.what.toLowerCase().includes(search.toLowerCase())) ||
-      (a.leader_name && a.leader_name.toLowerCase().includes(search.toLowerCase()))
+      (a.what?.toLowerCase().includes(search.toLowerCase())) ||
+      (a.leader_name?.toLowerCase().includes(search.toLowerCase()))
     );
   });
 
@@ -270,9 +270,9 @@ const ActionsList = () => {
         `"${getStatusLabel(action.status) || ''}"`,
         `"${getPriorityLabel(action.priority) || ''}"`,
         `"${action.target_date ? formatDate(action.target_date) : ''}"`,
-        `"${action.what ? action.what.replace(/"/g, '""') : ''}"`,
-        `"${action.why ? action.why.replace(/"/g, '""') : ''}"`,
-        `"${action.how ? action.how.replace(/"/g, '""') : ''}"`,
+        `"${action.what ? action.what.replaceAll('"', '""') : ''}"`,
+        `"${action.why ? action.why.replaceAll('"', '""') : ''}"`,
+        `"${action.how ? action.how.replaceAll('"', '""') : ''}"`,
       ];
       csvRows.push(row.join(','));
     });
@@ -289,7 +289,7 @@ const ActionsList = () => {
     
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
   };
 
   const getStatusLabel = (status) => {

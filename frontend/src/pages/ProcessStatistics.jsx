@@ -134,7 +134,7 @@ const ProcessStatistics = () => {
 
   // Function to generate a custom tooltip for charts
   const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded shadow-md">
           <p className="font-medium text-gray-800">{label}</p>
@@ -151,7 +151,7 @@ const ProcessStatistics = () => {
 
   // Calculate completion percentage
   const getCompletionPercentage = () => {
-    if (!statistics || !statistics.totalActions) return 0;
+    if (!statistics?.totalActions) return 0;
     const completed = statistics.completedActions || 0;
     return Math.round((completed / statistics.totalActions) * 100);
   };

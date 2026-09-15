@@ -7,6 +7,8 @@ from app.models.action import get_action_by_id
 
 logger = logging.getLogger(__name__)
 
+PROCESS_ID_FILTER = " AND process_id = ?"
+
 
 async def get_dashboard_statistics() -> Dict[str, Any]:
     """Get general dashboard statistics."""
@@ -44,7 +46,7 @@ async def get_dashboard_statistics() -> Dict[str, Any]:
             "last_action": last_action
         }
     except Exception as e:
-        logger.error(f"Error getting dashboard statistics: {str(e)}")
+        logger.exception(f"Error getting dashboard statistics: {str(e)}")
         return {
             "total_actions": 0,
             "completed_actions": 0,
@@ -74,7 +76,7 @@ async def get_actions_by_type() -> List[Dict[str, Any]]:
         )
         return results
     except Exception as e:
-        logger.error(f"Error getting actions by type: {str(e)}")
+        logger.exception(f"Error getting actions by type: {str(e)}")
         return []
 
 
@@ -119,7 +121,7 @@ async def get_actions_by_status(
         """
         
         if process_id:
-            query += " AND process_id = ?"
+            query += PROCESS_ID_FILTER
             query_params.append(process_id)
             
         if date_filter:
@@ -162,7 +164,7 @@ async def get_actions_by_status(
         
         return counts
     except Exception as e:
-        logger.error(f"Error getting actions by status: {str(e)}")
+        logger.exception(f"Error getting actions by status: {str(e)}")
         return []
 
 
@@ -223,7 +225,7 @@ async def get_upcoming_deadlines(
         
         return actions
     except Exception as e:
-        logger.error(f"Error getting upcoming deadlines: {str(e)}")
+        logger.exception(f"Error getting upcoming deadlines: {str(e)}")
         return []
 
 
@@ -264,7 +266,7 @@ async def get_completion_rate(
         """
         
         if process_id:
-            total_query += " AND process_id = ?"
+            total_query += PROCESS_ID_FILTER
             query_params.append(process_id)
             
         if date_filter:
@@ -280,7 +282,7 @@ async def get_completion_rate(
         """
         
         if process_id:
-            completed_query += " AND process_id = ?"
+            completed_query += PROCESS_ID_FILTER
             # We reuse the same parameters as before
             
         if date_filter:
@@ -295,7 +297,7 @@ async def get_completion_rate(
         
         return {"rate": rate}
     except Exception as e:
-        logger.error(f"Error getting completion rate: {str(e)}")
+        logger.exception(f"Error getting completion rate: {str(e)}")
         return {"rate": 0}
 
 
@@ -417,7 +419,7 @@ async def get_actions_over_time(
         
         return result
     except Exception as e:
-        logger.error(f"Error getting actions over time: {str(e)}")
+        logger.exception(f"Error getting actions over time: {str(e)}")
         return []
 
 
@@ -454,5 +456,5 @@ async def get_process_statistics(include_zero_counts: bool = False) -> List[Dict
         
         return processes
     except Exception as e:
-        logger.error(f"Error getting process statistics: {str(e)}")
+        logger.exception(f"Error getting process statistics: {str(e)}")
         return []

@@ -1,6 +1,6 @@
 // src/contexts/ToastContext.jsx
 
-import React, { createContext, useState, useContext, useCallback } from 'react';
+import React, { createContext, useState, useContext, useCallback, useMemo } from 'react';
 import ToastContainer from '../components/Toast';
 
 // Create context
@@ -92,7 +92,7 @@ export const ToastProvider = ({ children }) => {
     addToast(message, TOAST_TYPES.WARNING, duration), [addToast]);
 
   // Context value to be provided to consumers
-  const contextValue = {
+  const contextValue = useMemo(() => ({
     toasts,
     addToast,
     removeToast,
@@ -100,7 +100,7 @@ export const ToastProvider = ({ children }) => {
     error,
     info,
     warning
-  };
+  }), [toasts, addToast, removeToast, success, error, info, warning]);
 
   return (
     <ToastContext.Provider value={contextValue}>

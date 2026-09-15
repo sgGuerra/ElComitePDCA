@@ -47,10 +47,10 @@ const resourceService = {
       const disposition = response.headers['content-disposition'];
       let filename = 'download';
       
-      if (disposition && disposition.indexOf('attachment') !== -1) {
+      if (disposition?.includes('attachment')) {
         const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
         const matches = filenameRegex.exec(disposition);
-        if (matches != null && matches[1]) {
+        if (matches?.[1]) {
           filename = matches[1].replace(/['"]/g, '');
         }
       }

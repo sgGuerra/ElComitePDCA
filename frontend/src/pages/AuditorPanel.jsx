@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   FaFilePdf, FaDownload, FaComment, FaEye, FaHistory, 
-  FaPlusCircle, FaSearch, FaSync, FaFilter, FaClipboardCheck 
+  FaPlusCircle, FaSync, FaClipboardCheck 
 } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import auditService from '../services/auditService';
 import processService from '../services/processService';
@@ -27,9 +25,7 @@ const AuditorPanel = () => {
     recommendations: ''
   });
   
-  const { user } = useAuth();
   const { success, error: showError } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchInitialData();

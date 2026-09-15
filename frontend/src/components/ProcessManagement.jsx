@@ -27,7 +27,7 @@ const ProcessManagement = () => {
   const [leaderLoadError, setLeaderLoadError] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
   const { user } = useAuth();
-  const [departments, setDepartments] = useState([
+  const [departments] = useState([
     { id: 'operations', name: 'Operaciones' },
     { id: 'finance', name: 'Finanzas' },
     { id: 'hr', name: 'Recursos Humanos' },
@@ -68,7 +68,7 @@ const ProcessManagement = () => {
       }
     } catch (err) {
       console.error('Error fetching processes:', err);
-      if (err.response && err.response.status === 403) {
+      if (err.response?.status === 403) {
         setPermissionError(true);
         showError('No tienes permisos para ver procesos. Intenta cambiar al rol de administrador.');
       } else {
@@ -124,10 +124,10 @@ const ProcessManagement = () => {
       }
       
       // Si hay un error 422, es probablemente un error de validación en el backend
-      if (err.response && err.response.status === 422) {
+      if (err.response?.status === 422) {
         console.log('Error de validación del esquema:', err.response.data);
         showError('Error al validar los datos de líderes. El usuario actual está disponible como opción.');
-      } else if (err.response && err.response.status === 403) {
+      } else if (err.response?.status === 403) {
         setPermissionError(true);
         showError('No tienes permisos para ver líderes de procesos. Intenta cambiar al rol de administrador.');
       } else {
@@ -247,7 +247,7 @@ const ProcessManagement = () => {
       
       if (selectedProcess) {
         // Update existing process
-        const response = await processService.updateProcess(selectedProcess.id, processForm);
+        await processService.updateProcess(selectedProcess.id, processForm);
         
         // Mostrar mensaje de éxito y cerrar modal
         setProcesses(processes.map(p => 
@@ -291,7 +291,7 @@ const ProcessManagement = () => {
         // Si el usuario seleccionó un líder de proceso, actualizar el campo owner para visualización
         if (processForm.leader_id) {
           const selectedLeader = processLeaders.find(leader => 
-            leader.id === parseInt(processForm.leader_id) || 
+            leader.id === Number.parseInt(processForm.leader_id) || 
             leader.id === processForm.leader_id
           );
           if (selectedLeader) {
@@ -320,7 +320,7 @@ const ProcessManagement = () => {
       }
     } catch (err) {
       console.error('Error saving process:', err);
-      if (err.response && err.response.status === 403) {
+      if (err.response?.status === 403) {
         showError('No tienes permisos para crear o actualizar procesos. Debes tener rol de administrador.');
       } else {
         showError(err.response?.data?.detail || 'Error al guardar el proceso');
@@ -365,8 +365,8 @@ const ProcessManagement = () => {
 
   const filteredProcesses = processes.filter(process => 
     process.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (process.description && process.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (process.owner && process.owner.toLowerCase().includes(searchTerm.toLowerCase()))
+    (process.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (process.owner?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusLabel = (status) => {

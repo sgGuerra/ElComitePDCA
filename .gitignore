@@ -77,3 +77,6 @@ ehthumbs.db
 # SonarScanner
 .scannerwork/
 .sonarlint/
+.abacusai/
+# TEST documentacion
+pasoapaso.md 

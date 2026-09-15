@@ -10,7 +10,6 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import RequestDeactivationModal from '../components/RequestDeactivationModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import userService from '../services/userService';
 import actionService from '../services/actionService';
 
 const UserProfile = () => {
@@ -137,7 +136,7 @@ const UserProfile = () => {
     const errors = {};
     if (!userForm.name.trim()) errors.name = 'El nombre es obligatorio';
     if (!userForm.email.trim()) errors.email = 'El correo electrónico es obligatorio';
-    if (userForm.email && !/\S+@\S+\.\S+/.test(userForm.email)) {
+    if (userForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userForm.email)) {
       errors.email = 'El correo electrónico no es válido';
     }
     

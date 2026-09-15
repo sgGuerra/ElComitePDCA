@@ -5,7 +5,7 @@ Este script asegura que las tablas usuarios y procesos tengan todos los campos n
 
 import sqlite3
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configurar logging
 logging.basicConfig(
@@ -45,7 +45,7 @@ def check_and_update_users_table():
     
     if users_to_update:
         logger.info(f"Actualizando {len(users_to_update)} usuarios sin fechas")
-        current_time = datetime.utcnow().isoformat()
+        current_time = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
         
         for user_id in users_to_update:
             cursor.execute(
@@ -85,7 +85,7 @@ def check_and_update_processes_table():
     
     if processes_to_update:
         logger.info(f"Actualizando {len(processes_to_update)} procesos sin fechas")
-        current_time = datetime.utcnow().isoformat()
+        current_time = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
         
         for process_id in processes_to_update:
             cursor.execute(
@@ -105,4 +105,4 @@ if __name__ == "__main__":
         check_and_update_processes_table()
         logger.info("Actualización de la base de datos completada correctamente")
     except Exception as e:
-        logger.error(f"Error durante la actualización de la base de datos: {e}", exc_info=True)
+        logger.exception(f"Error durante la actualización de la base de datos: {e}", exc_info=True)

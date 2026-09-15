@@ -25,6 +25,8 @@ from app.schemas.statistics import (
 
 router = APIRouter()
 
+DATE_RANGE_REGEX = "^(week|month|quarter|year)$"
+
 
 @router.get("/dashboard", response_model=DashboardStatistics)
 async def get_statistics_dashboard(
@@ -51,7 +53,7 @@ async def get_stats_actions_by_type(
 @router.get("/actions-by-status", response_model=List[ActionsByStatus])
 async def get_stats_actions_by_status(
     process_id: Optional[int] = None,
-    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", regex=DATE_RANGE_REGEX),
     include_actions: bool = Query(False, description="Include the actual actions in the result"),
     limit: int = Query(5, ge=1, le=20),
     current_user: dict = Depends(get_current_user),
@@ -67,7 +69,7 @@ async def get_stats_actions_by_status(
 async def get_stats_upcoming_deadlines(
     limit: int = Query(5, ge=1, le=20),
     process_id: Optional[int] = None,
-    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", regex=DATE_RANGE_REGEX),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -80,7 +82,7 @@ async def get_stats_upcoming_deadlines(
 @router.get("/completion-rate", response_model=CompletionRate)
 async def get_stats_completion_rate(
     process_id: Optional[int] = None,
-    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", regex=DATE_RANGE_REGEX),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -93,7 +95,7 @@ async def get_stats_completion_rate(
 @router.get("/actions-over-time", response_model=List[ActionsOverTime])
 async def get_stats_actions_over_time(
     process_id: Optional[int] = None,
-    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", regex=DATE_RANGE_REGEX),
     current_user: dict = Depends(get_current_user),
 ):
     """

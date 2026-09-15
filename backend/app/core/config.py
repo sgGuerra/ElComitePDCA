@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # Database settings
-    DATABASE_URL: str = f"sqlite:///../database.sqlite"
+    DATABASE_URL: str = "sqlite:///../database.sqlite"
     
     # Roles
     ROLE_ADMIN: str = "admin"

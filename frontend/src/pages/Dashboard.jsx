@@ -112,7 +112,7 @@ const Dashboard = () => {
       }
 
       // Set completion rate
-      if (completionRateData && completionRateData.rate !== undefined) {
+      if (completionRateData?.rate !== undefined) {
         setCompletionRate(completionRateData.rate);
       }
 
@@ -144,7 +144,7 @@ const Dashboard = () => {
         })));
 
         // Get completed actions for display
-        if (completed && completed.actions) {
+        if (completed?.actions) {
           setCompletedActions(completed.actions.slice(0, 4));
         } else {
           setCompletedActions([]);
@@ -152,7 +152,7 @@ const Dashboard = () => {
       }
 
       // Fetch last action
-      if (stats && stats.lastAction) {
+      if (stats?.lastAction) {
         setLastAction(stats.lastAction);
       }
 

@@ -30,6 +30,10 @@ from app.models.resource import (
 
 router = APIRouter()
 
+PROCESS_NOT_FOUND = "Proceso no encontrado"
+ACTION_NOT_FOUND = "Acción no encontrada"
+NO_PERMISSION_VIEW_ACTIONS = "No tienes permisos para ver estas acciones"
+
 
 @router.get("/process/{process_id}", response_model=List[Action])
 async def read_actions_by_process(
@@ -44,14 +48,14 @@ async def read_actions_by_process(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Check permissions - only admin or process creator can access
     if current_user["active_role"] != settings.ROLE_ADMIN and process["created_by"] != current_user["id"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver estas acciones"
+            detail=NO_PERMISSION_VIEW_ACTIONS
         )
     
     actions = await get_actions_by_process(process_id)
@@ -70,7 +74,7 @@ async def read_actions_by_leader(
     if current_user["active_role"] != settings.ROLE_ADMIN and current_user["id"] != int(leader_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver estas acciones"
+            detail=NO_PERMISSION_VIEW_ACTIONS
         )
     
     actions = await get_actions_by_leader(leader_id)
@@ -91,7 +95,7 @@ async def read_action_statistics(
         if not process:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Proceso no encontrado"
+                detail=PROCESS_NOT_FOUND
             )
         
         # Check permissions if not admin
@@ -121,14 +125,14 @@ async def read_upcoming_deadlines(
         if not process:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Proceso no encontrado"
+                detail=PROCESS_NOT_FOUND
             )
         
         # Check permissions if not admin
         if current_user["active_role"] != settings.ROLE_ADMIN and process["created_by"] != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para ver estas acciones"
+                detail=NO_PERMISSION_VIEW_ACTIONS
             )
     
     actions = await get_upcoming_deadlines(limit, process_id, date_range)
@@ -148,7 +152,7 @@ async def read_action(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Acción no encontrada"
+            detail=ACTION_NOT_FOUND
         )
     
     # Check permissions - admin, process creator, or action leader can access
@@ -178,7 +182,7 @@ async def create_new_action(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Check permissions to create action for this process
@@ -237,7 +241,7 @@ async def create_action_with_evidence(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Proceso no encontrado"
+            detail=PROCESS_NOT_FOUND
         )
     
     # Check permissions
@@ -305,7 +309,7 @@ async def update_action_info(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Acción no encontrada"
+            detail=ACTION_NOT_FOUND
         )
     
     # Check permissions - admin, process creator, or action leader can update
@@ -363,7 +367,7 @@ async def update_action_with_evidence(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Acción no encontrada"
+            detail=ACTION_NOT_FOUND
         )
     
     # Check permissions
@@ -455,7 +459,7 @@ async def delete_action_by_id(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Acción no encontrada"
+            detail=ACTION_NOT_FOUND
         )
     
     # Check permissions - only admin or process creator can delete
@@ -486,7 +490,7 @@ async def upload_file_to_action(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail="Acción no encontrada")
+        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -496,7 +500,7 @@ async def upload_file_to_action(
         resource = await add_resource_to_action(action_id, file, current_user["id"])
         return {"success": True, "data": resource, "message": "Archivo subido correctamente"}
     except Exception as e:
-        logger.error(f"Error uploading file: {str(e)}")
+        logger.exception(f"Error uploading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al subir el archivo: {str(e)}")
 
 
@@ -510,7 +514,7 @@ async def get_action_files(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail="Acción no encontrada")
+        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -531,7 +535,7 @@ async def delete_action_file(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail="Acción no encontrada")
+        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -555,7 +559,7 @@ async def download_action_file(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail="Acción no encontrada")
+        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -582,7 +586,7 @@ async def preview_action_file(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Acción no encontrada"
+            detail=ACTION_NOT_FOUND
         )
     
     # Check permissions

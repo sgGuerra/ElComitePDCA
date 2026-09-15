@@ -117,9 +117,7 @@ describe('ToastContext', () => {
     
     // Find close button - in Toast.jsx it uses aria-label="Close"
     const closeButton = screen.getByLabelText('Close');
-    act(() => {
-      fireEvent.click(closeButton);
-    });
+    fireEvent.click(closeButton);
 
     // Wait for element to disappear
     expect(screen.getAllByText('No Auto Close').length).toBe(1); // Only the button should remain

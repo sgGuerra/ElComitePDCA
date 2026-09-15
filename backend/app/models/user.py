@@ -1,7 +1,7 @@
 import logging
 import bcrypt
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.user import UserCreate, UserUpdate
@@ -32,7 +32,7 @@ async def create_user(user_data: UserCreate) -> Dict[str, Any]:
         # Return the created user
         return await get_user_by_id(user_id)
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.exception(f"Error creating user: {e}")
         raise
 
 
@@ -47,7 +47,7 @@ async def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
         
         return user
     except Exception as e:
-        logger.error(f"Error getting user: {e}")
+        logger.exception(f"Error getting user: {e}")
         raise
 
 
@@ -62,7 +62,7 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         
         return user
     except Exception as e:
-        logger.error(f"Error getting user by email: {e}")
+        logger.exception(f"Error getting user by email: {e}")
         raise
 
 
@@ -82,13 +82,13 @@ async def get_all_users() -> List[Dict[str, Any]]:
                 
             # Ensure created_at and updated_at fields exist (for schema validation)
             if "created_at" not in user or user["created_at"] is None:
-                user["created_at"] = datetime.utcnow()
+                user["created_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
             if "updated_at" not in user or user["updated_at"] is None:
-                user["updated_at"] = datetime.utcnow()
+                user["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
         
         return users
     except Exception as e:
-        logger.error(f"Error getting all users: {e}")
+        logger.exception(f"Error getting all users: {e}")
         raise
 
 
@@ -145,7 +145,7 @@ async def update_user(user_id: int, user_data: UserUpdate) -> Optional[Dict[str,
         # Return updated user
         return await get_user_by_id(user_id)
     except Exception as e:
-        logger.error(f"Error updating user: {e}")
+        logger.exception(f"Error updating user: {e}")
         raise
 
 
@@ -161,7 +161,7 @@ async def delete_user(user_id: int) -> bool:
         await execute("DELETE FROM users WHERE id = ?", (user_id,))
         return True
     except Exception as e:
-        logger.error(f"Error deleting user: {e}")
+        logger.exception(f"Error deleting user: {e}")
         raise
 
 
@@ -183,7 +183,7 @@ async def validate_credentials(email: str, password: str) -> Optional[Dict[str, 
         
         return None
     except Exception as e:
-        logger.error(f"Error validating credentials: {e}")
+        logger.exception(f"Error validating credentials: {e}")
         raise
 
 
@@ -212,11 +212,11 @@ async def get_users_by_role(role: str) -> List[Dict[str, Any]]:
             
             # Ensure created_at and updated_at fields exist (for schema validation)
             if "created_at" not in user or user["created_at"] is None:
-                user["created_at"] = datetime.utcnow()
+                user["created_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
             if "updated_at" not in user or user["updated_at"] is None:
-                user["updated_at"] = datetime.utcnow()
+                user["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
         
         return users
     except Exception as e:
-        logger.error(f"Error getting users by role: {e}")
+        logger.exception(f"Error getting users by role: {e}")
         raise

@@ -12,7 +12,7 @@ const findingService = {
    * @param {number} processId - Process ID
    * @returns {Promise} Promise with findings data
    */
-  getFindingsByProcess: async (processId) => {w
+  getFindingsByProcess: async (processId) => {
     try {
       const response = await apiClient.get(`/api/processes/${processId}/findings`, {
         headers: {
