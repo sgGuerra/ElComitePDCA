@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone 
 
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.assignment import AssignmentCreate, AssignmentUpdate
@@ -84,9 +84,9 @@ async def get_process_leaders(process_id: int) -> List[Dict[str, Any]]:
                 
             # Ensure created_at and updated_at fields have values
             if 'created_at' not in leader or leader['created_at'] is None:
-                leader['created_at'] = datetime.utcnow()
+                leader['created_at'] = datetime.now(timezone.utc)
             if 'updated_at' not in leader or leader['updated_at'] is None:
-                leader['updated_at'] = datetime.utcnow()
+                leader['updated_at'] = datetime.now(timezone.utc)
         
         return leaders
     except Exception as e:
