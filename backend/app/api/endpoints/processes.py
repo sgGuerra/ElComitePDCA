@@ -200,7 +200,7 @@ async def get_process_assigned_leaders(
 @router.get("/{process_id}/statistics", response_model=dict)
 async def get_process_detailed_statistics(
     process_id: int,
-    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", pattern="^(week|month|quarter|year)$"),
     current_user: dict = Depends(get_current_user),
 ):
     """

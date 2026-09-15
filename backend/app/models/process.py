@@ -43,13 +43,14 @@ async def get_process_by_id(process_id: int) -> Optional[Dict[str, Any]]:
         return None
 
 
-async def get_all_processes(user_id: Optional[int] = None, include_stats: bool = False) -> List[Dict[str, Any]]:
+async def get_all_processes(user_id: Optional[int] = None, include_stats: bool = False, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Get all processes, optionally filtered by user ID.
+    Get all processes, optionally filtered by user ID or status.
     
     Args:
         user_id: If provided, only return processes created by this user
         include_stats: If True, include action statistics for each process
+        status_filter: If provided, only return processes with this status
         
     Returns:
         List of processes
@@ -57,10 +58,18 @@ async def get_all_processes(user_id: Optional[int] = None, include_stats: bool =
     try:
         query = "SELECT * FROM processes"
         params = []
+        where_clauses = []
         
         if user_id:
-            query += " WHERE created_by = ?"
+            where_clauses.append("created_by = ?")
             params.append(user_id)
+            
+        if status_filter:
+            where_clauses.append("status = ?")
+            params.append(status_filter)
+            
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
         
         query += " ORDER BY created_at DESC"
         

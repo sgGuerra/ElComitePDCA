@@ -113,7 +113,7 @@ async def read_action_statistics(
 async def read_upcoming_deadlines(
     limit: int = Query(5, ge=1, le=20),
     process_id: Optional[int] = None,
-    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", pattern="^(week|month|quarter|year)$"),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -240,14 +240,14 @@ async def create_action_with_evidence(
     process = await get_process_by_id(process_id)
     if not process:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail=PROCESS_NOT_FOUND
         )
     
     # Check permissions
     if current_user["active_role"] != settings.ROLE_ADMIN and process["created_by"] != current_user["id"]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para crear acciones en este proceso"
         )
     
@@ -255,7 +255,7 @@ async def create_action_with_evidence(
     evidence_path = None
     if evidence:
         valid_types = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
-        evidence_path = await save_upload(
+        evidence_path = save_upload(
             evidence,
             folder="evidence",
             valid_types=valid_types,
@@ -290,7 +290,7 @@ async def create_action_with_evidence(
             delete_file(evidence_path)
         
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=str(e)
         )
 
