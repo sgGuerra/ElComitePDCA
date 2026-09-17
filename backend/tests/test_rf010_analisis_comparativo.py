@@ -31,28 +31,34 @@ class TestPeriodoSinDatosYDivisionPorCero:
 
     @pytest.mark.asyncio
     async def test_completion_rate_sin_acciones_retorna_cero(self, client):
+        # Arrange: un admin nuevo, sin ninguna acción creada todavía en el sistema
         admin = await create_test_user(name="Admin Zero", email="zero@test.com", roles="admin")
         token = make_token(admin, active_role="admin")
 
+        # Act: pedimos la tasa de completado
         response = await client.get(
             "/api/statistics/completion-rate",
             headers=auth_headers(token),
         )
 
+        # Assert: debe dar 0%, no reventar por dividir 0/0
         assert response.status_code == 200
         data = response.json()
         assert data["rate"] == 0
 
     @pytest.mark.asyncio
     async def test_actions_over_time_sin_acciones_retorna_serie_en_cero(self, client):
+        # Arrange: usuario nuevo, sin acciones registradas en la semana
         admin = await create_test_user(name="Admin Time", email="time@test.com", roles="admin")
         token = make_token(admin, active_role="admin")
 
+        # Act: pedimos la tendencia de acciones de la última semana
         response = await client.get(
             "/api/statistics/actions-over-time?date_range=week",
             headers=auth_headers(token),
         )
 
+        # Assert: la serie debe venir completa mostrando ceros, no vacía ni con error
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -63,15 +69,18 @@ class TestPeriodoSinDatosYDivisionPorCero:
 
     @pytest.mark.asyncio
     async def test_process_statistics_sin_acciones_no_divide_por_cero(self, client):
+        # Arrange: un proceso recién creado, sin ninguna acción todavía
         admin = await create_test_user(name="Admin Proc", email="proc_zero@test.com", roles="admin")
         token = make_token(admin, active_role="admin")
         await create_test_process(name="Proceso Sin Acciones", created_by=admin["id"])
 
+        # Act: pedimos las estadísticas de todos los procesos (incluyendo los de 0 acciones)
         response = await client.get(
             "/api/statistics/processes?include_zero_counts=true",
             headers=auth_headers(token),
         )
 
+        # Assert: el proceso aparece con 0 acciones y 0% de completado, no explota
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1

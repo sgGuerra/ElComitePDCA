@@ -31,8 +31,7 @@ class TestNoNotificacionesDuplicadas:
 
     @pytest.mark.asyncio
     async def test_completar_dos_veces_seguidas_no_duplica_notificacion(self, client):
-        # Valor por defecto del escenario roto: una acción que se marca
-        # 'completed' más de una vez seguida (pending -> completed -> pending -> completed)
+        # Arrange: una acción en pending, lista para que el líder le cambie el estado
         admin = await create_test_user(name="Admin Dup", email="admin_dup@test.com", roles="admin")
         leader = await create_test_user(name="Líder Dup", email="leader_dup@test.com", roles="process_leader")
 
@@ -47,7 +46,8 @@ class TestNoNotificacionesDuplicadas:
 
         token_leader = make_token(leader, active_role="process_leader")
 
-        # Primer completado
+        # Act: la marcamos completada, la devolvemos a pending y la volvemos a completar
+        # rápido (simula el doble clic / rebote de estado que reportaba el escenario E21)
         resp1 = await client.put(
             f"/api/actions/{action['id']}",
             json={"status": "completed"},
@@ -55,7 +55,6 @@ class TestNoNotificacionesDuplicadas:
         )
         assert resp1.status_code == 200
 
-        # Se revierte y se vuelve a completar rápidamente (simula el doble clic / rebote de estado)
         resp2 = await client.put(
             f"/api/actions/{action['id']}",
             json={"status": "pending"},
@@ -70,8 +69,8 @@ class TestNoNotificacionesDuplicadas:
         )
         assert resp3.status_code == 200
 
-        # El creador (admin, distinto del líder) solo debe tener UNA notificación
-        # de "Acción completada" sin leer para esta acción, no dos.
+        # Assert: el creador (admin, distinto del líder) solo debe tener UNA
+        # notificación de "Acción completada" sin leer para esta acción, no dos.
         notifications = await get_notifications_by_user(admin["id"])
         completed_notifs = [
             n for n in notifications
@@ -90,7 +89,7 @@ class TestNotificacionAlCancelar:
 
     @pytest.mark.asyncio
     async def test_cancelar_accion_notifica_al_creador(self, client):
-        # Valor por defecto del escenario roto: una acción activa que se cancela
+        # Arrange: una acción activa (in_progress), con líder y creador distintos
         admin = await create_test_user(name="Admin Cancel", email="admin_cancel@test.com", roles="admin")
         leader = await create_test_user(name="Líder Cancel", email="leader_cancel@test.com", roles="process_leader")
 
@@ -103,12 +102,15 @@ class TestNotificacionAlCancelar:
             status="in_progress",
         )
 
+        # Act: el líder cancela la acción
         token_leader = make_token(leader, active_role="process_leader")
         response = await client.put(
             f"/api/actions/{action['id']}",
             json={"status": "canceled"},
             headers=auth_headers(token_leader),
         )
+
+        # Assert: queda cancelada Y el creador recibe una notificación avisándole
         assert response.status_code == 200
         assert response.json()["status"] == "canceled"
 
@@ -129,10 +131,10 @@ class TestManipulacionNotificaciones:
 
     @pytest.mark.asyncio
     async def test_manipulacion_notification_id_en_url_bloqueada_con_403(self, client):
+        # Arrange: una notificación que le pertenece únicamente al Usuario X
         user_x = await create_test_user(name="Usuario X", email="userx@test.com", roles="process_leader")
         user_y = await create_test_user(name="Usuario Y", email="usery@test.com", roles="process_leader")
 
-        # Notificación para Usuario X
         notif_x = await create_notification(
             user_id=user_x["id"],
             title="Cambio de Estado",
@@ -140,19 +142,23 @@ class TestManipulacionNotificaciones:
             related_type="action",
             related_id=10,
         )
-
-        # Usuario Y intenta ver la notificación manipulando el ID en la URL
         token_y = make_token(user_y, active_role="process_leader")
+
+        # Act: el Usuario Y intenta verla, adivinando/escribiendo el ID en la URL
         get_resp = await client.get(
             f"/api/notifications/{notif_x['id']}",
             headers=auth_headers(token_y),
         )
+
+        # Assert: bloqueado con 403, no debería poder verla
         assert get_resp.status_code == 403
         assert "permisos" in get_resp.json()["detail"].lower()
 
-        # Usuario Y intenta marcarla como leída manipulando el ID
+        # Act: el Usuario Y intenta además marcarla como leída con el mismo ID ajeno
         put_resp = await client.put(
             f"/api/notifications/{notif_x['id']}/read",
             headers=auth_headers(token_y),
         )
+
+        # Assert: también bloqueado con 403
         assert put_resp.status_code == 403

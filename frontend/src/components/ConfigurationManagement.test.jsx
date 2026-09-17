@@ -16,20 +16,18 @@ describe('ConfigurationManagement - recordatorios', () => {
   });
 
   it('E16: pide confirmación al desactivar el recordatorio, y no lo desactiva si se cancela', () => {
-    // Valor por defecto del escenario roto: el recordatorio está activo (true)
-    // y el usuario cancela el diálogo de confirmación al intentar apagarlo
+    // Arrange: el recordatorio empieza activo, y el usuario va a cancelar el diálogo
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-
     render(<ConfigurationManagement />);
-
     fireEvent.click(screen.getByText('Notificaciones'));
-
     const checkbox = document.getElementById('notifyOnDueDateApproaching');
-    expect(checkbox.checked).toBe(true);
+    expect(checkbox.checked).toBe(true); // confirmamos el punto de partida antes de actuar
 
+    // Act: el usuario intenta apagar el checkbox
     fireEvent.click(checkbox);
 
+    // Assert: se pidió confirmación, y como se canceló, el recordatorio sigue activo
     expect(confirmSpy).toHaveBeenCalled();
-    expect(checkbox.checked).toBe(true); // sigue activo: la cancelación no lo apagó
+    expect(checkbox.checked).toBe(true);
   });
 });
