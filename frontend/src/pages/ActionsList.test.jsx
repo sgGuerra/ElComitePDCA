@@ -49,15 +49,14 @@ describe('ActionsList - handleExportCSV', () => {
   });
 
   it('E06: no genera el CSV y avisa al usuario cuando la lista (por defecto) está vacía', async () => {
-    // Arrange: el backend devuelve una lista vacía de acciones
+    // Valor por defecto del escenario roto: lista de acciones vacía
     actionService.getActionsByProcess.mockResolvedValue([]);
+
     render(<ActionsList />);
 
-    // Act: el usuario le da clic a "Exportar CSV"
     const exportButton = await screen.findByText('Exportar CSV');
     fireEvent.click(exportButton);
 
-    // Assert: se muestra un aviso en vez de descargar un archivo vacío
     await waitFor(() => {
       expect(showErrorMock).toHaveBeenCalledWith(
         'No hay datos para exportar con los filtros actuales'
@@ -66,25 +65,26 @@ describe('ActionsList - handleExportCSV', () => {
   });
 
   it('E08: avisa y no exporta datos obsoletos cuando la sesión ya expiró al reintentar', async () => {
-    // Arrange: la carga inicial funciona (hay datos), pero para cuando el usuario
-    // reintenta exportar, el servidor ya responde 401 (sesión vencida)
+    // Valor por defecto del escenario roto: la carga inicial funciona (hay datos),
+    // pero la sesión ya expiró para cuando el usuario reintenta exportar
     actionService.getActionsByProcess
       .mockResolvedValueOnce([
         { id: 1, name: 'Acción 1', status: 'pending', priority: 'medium', leader_name: 'Líder 1' },
       ])
       .mockRejectedValueOnce({ response: { status: 401 } });
+
     render(<ActionsList />);
 
-    // Act: el usuario le da clic a "Exportar CSV"
     const exportButton = await screen.findByText('Exportar CSV');
     fireEvent.click(exportButton);
 
-    // Assert: avisa que la sesión expiró y NO exporta datos viejos/obsoletos
     await waitFor(() => {
       expect(showErrorMock).toHaveBeenCalledWith(
         'No se pudo exportar: tu sesión pudo haber expirado. Inicia sesión de nuevo.'
       );
     });
+
+    // Se intentó revalidar contra el servidor (carga inicial + reintento de exportación)
     expect(actionService.getActionsByProcess).toHaveBeenCalledTimes(2);
   });
 });

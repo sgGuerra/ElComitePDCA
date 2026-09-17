@@ -47,26 +47,27 @@ describe('Header - notificaciones', () => {
   });
 
   it('E17/E22: pide confirmación antes de marcar todas como leídas, y no marca nada si se cancela', async () => {
-    // Arrange: hay 1 notificación sin leer, y el usuario va a cancelar el diálogo de confirmación
+    // Valor por defecto del escenario roto: el usuario cancela el diálogo de confirmación
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     notificationService.getUserNotifications.mockResolvedValue([
       { id: 1, title: 'N1', message: 'M1', read: false, created_at: new Date().toISOString() },
     ]);
+
     render(<Header activeTab="Resumen" setActiveTab={() => {}} tabs={['Resumen']} />);
 
-    // Act: abre el dropdown de notificaciones (clic en la campana) y le da a "Marcar todas como leídas"
+    // Abrir el dropdown haciendo clic en el ícono de campana (único botón sin texto en el header de notificaciones)
     const bellIcon = document.querySelector('svg.text-xl').closest('button');
     fireEvent.click(bellIcon);
+
     const markAllButton = await screen.findByText('Marcar todas como leídas');
     fireEvent.click(markAllButton);
 
-    // Assert: pidió confirmación, y como se canceló, no le pegó al backend
     expect(confirmSpy).toHaveBeenCalled();
     expect(notificationService.markAllAsRead).not.toHaveBeenCalled();
   });
 
   it('E18: al hacer clic en una notificación de acción, navega a la acción antes de marcarla como leída', async () => {
-    // Arrange: una notificación sin leer, ligada a la acción 42 del proceso 7
+    // Valor por defecto del escenario roto: una notificación sin leer ligada a una acción
     notificationService.getUserNotifications.mockResolvedValue([
       {
         id: 5,
@@ -79,15 +80,15 @@ describe('Header - notificaciones', () => {
       },
     ]);
     actionService.getActionById.mockResolvedValue({ id: 42, process_id: 7 });
+
     render(<Header activeTab="Resumen" setActiveTab={() => {}} tabs={['Resumen']} />);
 
-    // Act: abre el dropdown y hace clic sobre la notificación
     const bellIcon = document.querySelector('svg.text-xl').closest('button');
     fireEvent.click(bellIcon);
+
     const notificationTitle = await screen.findByText('Acción vencida');
     fireEvent.click(notificationTitle);
 
-    // Assert: primero navega a la acción, y recién ahí la marca como leída
     await waitFor(() => {
       expect(actionService.getActionById).toHaveBeenCalledWith(42);
       expect(navigateMock).toHaveBeenCalledWith('/procesos/7/acciones/42');

@@ -32,18 +32,15 @@ class TestEvaluacionSinLideresOSinDatos:
 
     @pytest.mark.asyncio
     async def test_proceso_sin_lideres_retorna_lista_vacia_sin_error(self, client):
-        # Arrange: dejamos listo un proceso que no tiene ningún líder asignado
         admin = await create_test_user(name="Admin", email="admin@eval.com", roles="admin")
         token = make_token(admin, active_role="admin")
         process = await create_test_process(name="Proceso Vacío", created_by=admin["id"], leader_id=None)
 
-        # Act: pedimos los líderes de ese proceso
         response = await client.get(
             f"/api/assignments/process/{process['id']}/leaders",
             headers=auth_headers(token),
         )
 
-        # Assert: debe responder 200 con una lista vacía, no un error
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -51,18 +48,15 @@ class TestEvaluacionSinLideresOSinDatos:
 
     @pytest.mark.asyncio
     async def test_estadisticas_proceso_sin_acciones_retorna_ceros_sin_division_por_cero(self, client):
-        # Arrange: un proceso recién creado, todavía sin ninguna acción
         admin = await create_test_user(name="Admin", email="admin2@eval.com", roles="admin")
         token = make_token(admin, active_role="admin")
         process = await create_test_process(name="Proceso Sin Acciones", created_by=admin["id"])
 
-        # Act: consultamos sus estadísticas
         response = await client.get(
             f"/api/processes/{process['id']}/statistics",
             headers=auth_headers(token),
         )
 
-        # Assert: todo en cero, sin que reviente por dividir entre cero
         assert response.status_code == 200
         data = response.json()
         assert data["total_actions"] == 0
@@ -79,8 +73,6 @@ class TestEvaluacionConLideresYMetricas:
 
     @pytest.mark.asyncio
     async def test_estadisticas_calculan_tasa_completitud_correcta(self, client):
-        # Arrange: un proceso con líder asignado, 1 acción completada y 1 pendiente
-        # (con esto la tasa de completado esperada es 50.0%)
         admin = await create_test_user(name="Admin Metric", email="metric@eval.com", roles="admin")
         leader = await create_test_user(name="Líder Operaciones", email="leader_op@eval.com", roles="process_leader")
         token = make_token(admin, active_role="admin")
@@ -88,16 +80,15 @@ class TestEvaluacionConLideresYMetricas:
         process = await create_test_process(name="Operaciones", created_by=admin["id"], leader_id=leader["id"])
         await assign_leader_to_process(process["id"], leader["id"], created_by=admin["id"])
 
+        # Crear 1 completada y 1 pendiente (tasa esperada: 50.0%)
         await create_test_action(process["id"], leader["id"], admin["id"], name="Acción 1", status="completed")
         await create_test_action(process["id"], leader["id"], admin["id"], name="Acción 2", status="pending")
 
-        # Act: pedimos las estadísticas del proceso
         response = await client.get(
             f"/api/processes/{process['id']}/statistics",
             headers=auth_headers(token),
         )
 
-        # Assert: los números deben cuadrar con lo que armamos arriba
         assert response.status_code == 200
         data = response.json()
         assert data["total_actions"] == 2
