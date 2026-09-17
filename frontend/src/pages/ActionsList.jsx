@@ -13,204 +13,6 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 
-const SortIcon = ({ active, direction }) => {
-  if (!active) return null;
-  return direction === 'asc'
-    ? <FaSortAmountUp className="ml-1 text-gray-500" />
-    : <FaSortAmountDown className="ml-1 text-gray-500" />;
-};
-
-const ActionFormModal = ({ open, form, errors, userOptions, onChange, onSubmit, onClose }) => {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full">
-        <div className="p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
-            {form.id ? 'Editar Acción' : 'Nueva Acción'}
-          </h3>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="action-name" className="block text-sm font-medium text-gray-700">Nombre *</label>
-              <input
-                id="action-name"
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={onChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Nombre de la acción"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="action-leader" className="block text-sm font-medium text-gray-700">Responsable</label>
-                <select
-                  id="action-leader"
-                  name="leader_id"
-                  value={form.leader_id}
-                  onChange={onChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Seleccionar responsable</option>
-                  {userOptions.map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="action-status" className="block text-sm font-medium text-gray-700">Estado</label>
-                <select
-                  id="action-status"
-                  name="status"
-                  value={form.status}
-                  onChange={onChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="pending">Pendiente</option>
-                  <option value="in_progress">En progreso</option>
-                  <option value="completed">Completada</option>
-                  <option value="canceled">Cancelada</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="action-priority" className="block text-sm font-medium text-gray-700">Prioridad</label>
-                <select
-                  id="action-priority"
-                  name="priority"
-                  value={form.priority}
-                  onChange={onChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="low">Baja</option>
-                  <option value="medium">Media</option>
-                  <option value="high">Alta</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="action-target-date" className="block text-sm font-medium text-gray-700">Fecha objetivo</label>
-              <input
-                id="action-target-date"
-                type="date"
-                name="target_date"
-                value={form.target_date}
-                onChange={onChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="action-what" className="block text-sm font-medium text-gray-700">¿Qué? *</label>
-              <textarea
-                id="action-what"
-                name="what"
-                value={form.what}
-                onChange={onChange}
-                rows="3"
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
-                  errors.what ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Descripción de la acción"
-              />
-              {errors.what && (
-                <p className="mt-1 text-sm text-red-600">{errors.what}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="action-why" className="block text-sm font-medium text-gray-700">¿Por qué?</label>
-              <textarea
-                id="action-why"
-                name="why"
-                value={form.why}
-                onChange={onChange}
-                rows="3"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                placeholder="Justificación de la acción"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="action-how" className="block text-sm font-medium text-gray-700">¿Cómo?</label>
-              <textarea
-                id="action-how"
-                name="how"
-                value={form.how}
-                onChange={onChange}
-                rows="3"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                placeholder="Método de implementación"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-              >
-                {form.id ? 'Actualizar Acción' : 'Crear Acción'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DeleteConfirmModal = ({ action, onCancel, onConfirm }) => {
-  if (!action) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-        <div className="flex items-center justify-center text-red-500 mb-4">
-          <FaExclamationTriangle className="text-4xl" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
-          Confirmar Eliminación
-        </h3>
-        <p className="text-gray-600 text-center mb-6">
-          ¿Está seguro que desea eliminar la acción "{action.name}"? Esta acción no se puede deshacer.
-        </p>
-        <div className="flex justify-center space-x-3">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-          >
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ActionsList = () => {
   const { processId } = useParams();
   const [actions, setActions] = useState([]);
@@ -290,8 +92,8 @@ const ActionsList = () => {
     // Apply search filter
     return (
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.what?.toLowerCase().includes(search.toLowerCase()) ||
-      a.leader_name?.toLowerCase().includes(search.toLowerCase())
+      (a.what && a.what.toLowerCase().includes(search.toLowerCase())) ||
+      (a.leader_name && a.leader_name.toLowerCase().includes(search.toLowerCase()))
     );
   });
 
@@ -462,9 +264,9 @@ const ActionsList = () => {
       return;
     }
 
-    // Revalida la sesión antes de exportar: si el token ya venció o el usuario
-    // cerró sesión en otra pestaña, esta llamada falla con 401 y el interceptor
-    // de apiClient te manda a /login, en vez de exportar datos viejos sin avisar.
+    // Revalidate the session before exporting: if the token expired or the
+    // user logged out in another tab, this call fails with 401 and apiClient's
+    // interceptor redirects to /login instead of silently exporting stale data.
     try {
       await actionService.getActionsByProcess(processId);
     } catch (err) {
@@ -483,9 +285,9 @@ const ActionsList = () => {
         `"${getStatusLabel(action.status) || ''}"`,
         `"${getPriorityLabel(action.priority) || ''}"`,
         `"${action.target_date ? formatDate(action.target_date) : ''}"`,
-        `"${action.what ? action.what.replaceAll('"', '""') : ''}"`,
-        `"${action.why ? action.why.replaceAll('"', '""') : ''}"`,
-        `"${action.how ? action.how.replaceAll('"', '""') : ''}"`,
+        `"${action.what ? action.what.replace(/"/g, '""') : ''}"`,
+        `"${action.why ? action.why.replace(/"/g, '""') : ''}"`,
+        `"${action.how ? action.how.replace(/"/g, '""') : ''}"`,
       ];
       csvRows.push(row.join(','));
     });
@@ -504,7 +306,7 @@ const ActionsList = () => {
     
     document.body.appendChild(link);
     link.click();
-    link.remove();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
@@ -678,7 +480,11 @@ const ActionsList = () => {
                       >
                         <div className="flex items-center">
                           <span>Nombre</span>
-                          <SortIcon active={sortField === 'name'} direction={sortDirection} />
+                          {sortField === 'name' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
                         </div>
                       </th>
                       <th 
@@ -687,7 +493,11 @@ const ActionsList = () => {
                       >
                         <div className="flex items-center">
                           <span>Responsable</span>
-                          <SortIcon active={sortField === 'leader_name'} direction={sortDirection} />
+                          {sortField === 'leader_name' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
                         </div>
                       </th>
                       <th 
@@ -696,7 +506,11 @@ const ActionsList = () => {
                       >
                         <div className="flex items-center">
                           <span>Fecha objetivo</span>
-                          <SortIcon active={sortField === 'target_date'} direction={sortDirection} />
+                          {sortField === 'target_date' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
                         </div>
                       </th>
                       <th 
@@ -705,7 +519,11 @@ const ActionsList = () => {
                       >
                         <div className="flex items-center">
                           <span>Estado</span>
-                          <SortIcon active={sortField === 'status'} direction={sortDirection} />
+                          {sortField === 'status' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
                         </div>
                       </th>
                       <th 
@@ -714,7 +532,11 @@ const ActionsList = () => {
                       >
                         <div className="flex items-center">
                           <span>Prioridad</span>
-                          <SortIcon active={sortField === 'priority'} direction={sortDirection} />
+                          {sortField === 'priority' && (
+                            sortDirection === 'asc' ? 
+                              <FaSortAmountUp className="ml-1 text-gray-500" /> : 
+                              <FaSortAmountDown className="ml-1 text-gray-500" />
+                          )}
                         </div>
                       </th>
                       <th className="py-3 px-4 text-left">Acciones</th>
@@ -827,21 +649,182 @@ const ActionsList = () => {
         </div>
       )}
       
-      <ActionFormModal
-        open={modalOpen}
-        form={actionForm}
-        errors={formErrors}
-        userOptions={userOptions}
-        onChange={handleInputChange}
-        onSubmit={handleSubmit}
-        onClose={closeModal}
-      />
-
-      <DeleteConfirmModal
-        action={confirmDelete}
-        onCancel={cancelDelete}
-        onConfirm={handleDelete}
-      />
+      {/* Create/Edit Action Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                {actionForm.id ? 'Editar Acción' : 'Nueva Acción'}
+              </h3>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nombre *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={actionForm.name}
+                    onChange={handleInputChange}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
+                      formErrors.name ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Nombre de la acción"
+                  />
+                  {formErrors.name && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Responsable</label>
+                    <select
+                      name="leader_id"
+                      value={actionForm.leader_id}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    >
+                      <option value="">Seleccionar responsable</option>
+                      {userOptions.map(user => (
+                        <option key={user.id} value={user.id}>{user.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Estado</label>
+                    <select
+                      name="status"
+                      value={actionForm.status}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    >
+                      <option value="pending">Pendiente</option>
+                      <option value="in_progress">En progreso</option>
+                      <option value="completed">Completada</option>
+                      <option value="canceled">Cancelada</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Prioridad</label>
+                    <select
+                      name="priority"
+                      value={actionForm.priority}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    >
+                      <option value="low">Baja</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Fecha objetivo</label>
+                  <input
+                    type="date"
+                    name="target_date"
+                    value={actionForm.target_date}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">¿Qué? *</label>
+                  <textarea
+                    name="what"
+                    value={actionForm.what}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
+                      formErrors.what ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Descripción de la acción"
+                  />
+                  {formErrors.what && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.what}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">¿Por qué?</label>
+                  <textarea
+                    name="why"
+                    value={actionForm.why}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    placeholder="Justificación de la acción"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">¿Cómo?</label>
+                  <textarea
+                    name="how"
+                    value={actionForm.how}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    placeholder="Método de implementación"
+                  />
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                  >
+                    {actionForm.id ? 'Actualizar Acción' : 'Crear Acción'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-center text-red-500 mb-4">
+              <FaExclamationTriangle className="text-4xl" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
+              Confirmar Eliminación
+            </h3>
+            <p className="text-gray-600 text-center mb-6">
+              ¿Está seguro que desea eliminar la acción "{confirmDelete.name}"? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-center space-x-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

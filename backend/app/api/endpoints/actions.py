@@ -30,84 +30,6 @@ from app.models.resource import (
 
 router = APIRouter()
 
-ACTION_NOT_FOUND = "Acción no encontrada"
-PROCESS_NOT_FOUND = "Proceso no encontrado"
-NO_PERMISSION_VIEW_ACTIONS = "No tienes permisos para ver estas acciones"
-
-
-class ActionCreateForm:
-    """Agrupa los campos del formulario multipart para crear una acción con evidencia,
-    así el endpoint recibe una sola dependencia en vez de 14 parámetros sueltos."""
-
-    def __init__(
-        self,
-        process_id: int = Form(...),
-        leader_id: int = Form(...),
-        name: str = Form(...),
-        origin: Optional[str] = Form(None),
-        start_date: Optional[str] = Form(None),
-        target_date: Optional[str] = Form(None),
-        what: Optional[str] = Form(None),
-        why: Optional[str] = Form(None),
-        how: Optional[str] = Form(None),
-        where: Optional[str] = Form(None),
-        status: Optional[str] = Form("pending"),
-        completion_percentage: Optional[int] = Form(0),
-        related_type: Optional[str] = Form(None),
-        related_id: Optional[int] = Form(None),
-    ):
-        self.process_id = process_id
-        self.leader_id = leader_id
-        self.name = name
-        self.origin = origin
-        self.start_date = start_date
-        self.target_date = target_date
-        self.what = what
-        self.why = why
-        self.how = how
-        self.where = where
-        self.status = status
-        self.completion_percentage = completion_percentage
-        self.related_type = related_type
-        self.related_id = related_id
-
-
-class ActionUpdateForm:
-    """Agrupa los campos del formulario multipart para actualizar una acción con evidencia.
-    Todos los campos son opcionales: solo los que se envían terminan en la actualización."""
-
-    def __init__(
-        self,
-        name: Optional[str] = Form(None),
-        leader_id: Optional[int] = Form(None),
-        origin: Optional[str] = Form(None),
-        start_date: Optional[str] = Form(None),
-        target_date: Optional[str] = Form(None),
-        completion_date: Optional[str] = Form(None),
-        what: Optional[str] = Form(None),
-        why: Optional[str] = Form(None),
-        how: Optional[str] = Form(None),
-        where: Optional[str] = Form(None),
-        status: Optional[str] = Form(None),
-        completion_percentage: Optional[int] = Form(None),
-        related_type: Optional[str] = Form(None),
-        related_id: Optional[int] = Form(None),
-    ):
-        self.name = name
-        self.leader_id = leader_id
-        self.origin = origin
-        self.start_date = start_date
-        self.target_date = target_date
-        self.completion_date = completion_date
-        self.what = what
-        self.why = why
-        self.how = how
-        self.where = where
-        self.status = status
-        self.completion_percentage = completion_percentage
-        self.related_type = related_type
-        self.related_id = related_id
-
 
 @router.get("/process/{process_id}", response_model=List[Action])
 async def read_actions_by_process(
@@ -122,14 +44,14 @@ async def read_actions_by_process(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=PROCESS_NOT_FOUND
+            detail="Proceso no encontrado"
         )
     
     # Check permissions - only admin or process creator can access
     if current_user["active_role"] != settings.ROLE_ADMIN and process["created_by"] != current_user["id"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=NO_PERMISSION_VIEW_ACTIONS
+            detail="No tienes permisos para ver estas acciones"
         )
     
     actions = await get_actions_by_process(process_id)
@@ -148,7 +70,7 @@ async def read_actions_by_leader(
     if current_user["active_role"] != settings.ROLE_ADMIN and current_user["id"] != int(leader_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=NO_PERMISSION_VIEW_ACTIONS
+            detail="No tienes permisos para ver estas acciones"
         )
     
     actions = await get_actions_by_leader(leader_id)
@@ -169,7 +91,7 @@ async def read_action_statistics(
         if not process:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=PROCESS_NOT_FOUND
+                detail="Proceso no encontrado"
             )
         
         # Check permissions if not admin
@@ -187,7 +109,7 @@ async def read_action_statistics(
 async def read_upcoming_deadlines(
     limit: int = Query(5, ge=1, le=20),
     process_id: Optional[int] = None,
-    date_range: str = Query("month", pattern="^(week|month|quarter|year)$"),
+    date_range: str = Query("month", regex="^(week|month|quarter|year)$"),
     current_user: dict = Depends(get_current_user),
 ):
     """
@@ -199,14 +121,14 @@ async def read_upcoming_deadlines(
         if not process:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=PROCESS_NOT_FOUND
+                detail="Proceso no encontrado"
             )
         
         # Check permissions if not admin
         if current_user["active_role"] != settings.ROLE_ADMIN and process["created_by"] != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=NO_PERMISSION_VIEW_ACTIONS
+                detail="No tienes permisos para ver estas acciones"
             )
     
     actions = await get_upcoming_deadlines(limit, process_id, date_range)
@@ -226,7 +148,7 @@ async def read_action(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ACTION_NOT_FOUND
+            detail="Acción no encontrada"
         )
     
     # Check permissions - admin, process creator, or action leader can access
@@ -256,7 +178,7 @@ async def create_new_action(
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=PROCESS_NOT_FOUND
+            detail="Proceso no encontrado"
         )
     
     # Check permissions to create action for this process
@@ -290,7 +212,20 @@ async def create_new_action(
 
 @router.post("/with-evidence", response_model=Action)
 async def create_action_with_evidence(
-    form: ActionCreateForm = Depends(),
+    process_id: int = Form(...),
+    leader_id: int = Form(...),
+    name: str = Form(...),
+    origin: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    target_date: Optional[str] = Form(None),
+    what: Optional[str] = Form(None),
+    why: Optional[str] = Form(None),
+    how: Optional[str] = Form(None),
+    where: Optional[str] = Form(None),
+    status: Optional[str] = Form("pending"),
+    completion_percentage: Optional[int] = Form(0),
+    related_type: Optional[str] = Form(None),
+    related_id: Optional[int] = Form(None),
     evidence: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user),
 ):
@@ -298,20 +233,20 @@ async def create_action_with_evidence(
     Create action with file upload support.
     """
     # Check if process exists
-    process = await get_process_by_id(form.process_id)
+    process = await get_process_by_id(process_id)
     if not process:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=PROCESS_NOT_FOUND
+            detail="Proceso no encontrado"
         )
-
+    
     # Check permissions
     if current_user["active_role"] != settings.ROLE_ADMIN and process["created_by"] != current_user["id"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para crear acciones en este proceso"
         )
-
+    
     # Handle file upload if provided
     evidence_path = None
     if evidence:
@@ -322,26 +257,26 @@ async def create_action_with_evidence(
             valid_types=valid_types,
             max_size=settings.MAX_UPLOAD_SIZE
         )
-
+    
     # Create action data
     action_data = ActionCreate(
-        process_id=form.process_id,
-        leader_id=form.leader_id,
-        name=form.name,
-        origin=form.origin,
-        start_date=form.start_date,
-        target_date=form.target_date,
-        what=form.what,
-        why=form.why,
-        how=form.how,
-        where=form.where,
-        status=form.status,
+        process_id=process_id,
+        leader_id=leader_id,
+        name=name,
+        origin=origin,
+        start_date=start_date,
+        target_date=target_date,
+        what=what,
+        why=why,
+        how=how,
+        where=where,
+        status=status,
         evidence=evidence_path,
-        completion_percentage=form.completion_percentage,
-        related_type=form.related_type,
-        related_id=form.related_id
+        completion_percentage=completion_percentage,
+        related_type=related_type,
+        related_id=related_id
     )
-
+    
     try:
         action = await create_action(action_data, current_user["id"])
         return action
@@ -370,7 +305,7 @@ async def update_action_info(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ACTION_NOT_FOUND
+            detail="Acción no encontrada"
         )
     
     # Check permissions - admin, process creator, or action leader can update
@@ -403,7 +338,20 @@ async def update_action_info(
 @router.put("/{action_id}/with-evidence", response_model=Action)
 async def update_action_with_evidence(
     action_id: int,
-    form: ActionUpdateForm = Depends(),
+    name: Optional[str] = Form(None),
+    leader_id: Optional[int] = Form(None),
+    origin: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    target_date: Optional[str] = Form(None),
+    completion_date: Optional[str] = Form(None),
+    what: Optional[str] = Form(None),
+    why: Optional[str] = Form(None),
+    how: Optional[str] = Form(None),
+    where: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
+    completion_percentage: Optional[int] = Form(None),
+    related_type: Optional[str] = Form(None),
+    related_id: Optional[int] = Form(None),
     evidence: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user),
 ):
@@ -415,27 +363,51 @@ async def update_action_with_evidence(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ACTION_NOT_FOUND
+            detail="Acción no encontrada"
         )
-
+    
     # Check permissions
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
-
+    
     if not (is_admin or is_process_owner or is_action_leader):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para actualizar esta acción"
         )
-
-    # Solo los campos que el cliente realmente mandó terminan en la actualización
-    update_data = {
-        field: value
-        for field, value in vars(form).items()
-        if value is not None
-    }
-
+    
+    # Create update data
+    update_data = {}
+    if name is not None:
+        update_data["name"] = name
+    if leader_id is not None:
+        update_data["leader_id"] = leader_id
+    if origin is not None:
+        update_data["origin"] = origin
+    if start_date is not None:
+        update_data["start_date"] = start_date
+    if target_date is not None:
+        update_data["target_date"] = target_date
+    if completion_date is not None:
+        update_data["completion_date"] = completion_date
+    if what is not None:
+        update_data["what"] = what
+    if why is not None:
+        update_data["why"] = why
+    if how is not None:
+        update_data["how"] = how
+    if where is not None:
+        update_data["where"] = where
+    if status is not None:
+        update_data["status"] = status
+    if completion_percentage is not None:
+        update_data["completion_percentage"] = completion_percentage
+    if related_type is not None:
+        update_data["related_type"] = related_type
+    if related_id is not None:
+        update_data["related_id"] = related_id
+    
     # Leaders can only update certain fields unless they are also the process owner
     if is_action_leader and not (is_admin or is_process_owner):
         allowed_fields = {"status", "completion_percentage", "evidence"}
@@ -470,11 +442,7 @@ async def update_action_with_evidence(
     return updated_action
 
 
-@router.delete(
-    "/{action_id}",
-    response_model=dict,
-    responses={404: {"description": ACTION_NOT_FOUND}, 403: {"description": "No tienes permisos para eliminar esta acción"}},
-)
+@router.delete("/{action_id}", response_model=dict)
 async def delete_action_by_id(
     action_id: int,
     current_user: dict = Depends(get_current_user),
@@ -487,7 +455,7 @@ async def delete_action_by_id(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ACTION_NOT_FOUND
+            detail="Acción no encontrada"
         )
     
     # Check permissions - only admin or process creator can delete
@@ -507,15 +475,7 @@ async def delete_action_by_id(
     return {"success": success, "message": "Acción eliminada correctamente"}
 
 
-@router.post(
-    "/{action_id}/files",
-    response_model=dict,
-    responses={
-        404: {"description": ACTION_NOT_FOUND},
-        403: {"description": "No tienes permisos para subir archivos a esta acción"},
-        500: {"description": "Error al subir el archivo"},
-    },
-)
+@router.post("/{action_id}/files", response_model=dict)
 async def upload_file_to_action(
     action_id: int,
     file: UploadFile = File(...),
@@ -526,7 +486,7 @@ async def upload_file_to_action(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -536,15 +496,11 @@ async def upload_file_to_action(
         resource = await add_resource_to_action(action_id, file, current_user["id"])
         return {"success": True, "data": resource, "message": "Archivo subido correctamente"}
     except Exception as e:
-        logger.exception("Error uploading file")
+        logger.error(f"Error uploading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al subir el archivo: {str(e)}")
 
 
-@router.get(
-    "/{action_id}/files",
-    response_model=dict,
-    responses={404: {"description": ACTION_NOT_FOUND}, 403: {"description": "No tienes permisos para ver los archivos de esta acción"}},
-)
+@router.get("/{action_id}/files", response_model=dict)
 async def get_action_files(
     action_id: int,
     current_user: dict = Depends(get_current_user),
@@ -554,7 +510,7 @@ async def get_action_files(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -564,11 +520,7 @@ async def get_action_files(
     return {"success": True, "data": files, "message": "Archivos obtenidos correctamente"}
 
 
-@router.delete(
-    "/{action_id}/files/{file_id}",
-    response_model=dict,
-    responses={404: {"description": ACTION_NOT_FOUND}, 403: {"description": "No tienes permisos para eliminar archivos de esta acción"}},
-)
+@router.delete("/{action_id}/files/{file_id}", response_model=dict)
 async def delete_action_file(
     action_id: int,
     file_id: int,
@@ -579,7 +531,7 @@ async def delete_action_file(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -603,7 +555,7 @@ async def download_action_file(
     """
     action = await get_action_by_id(action_id)
     if not action:
-        raise HTTPException(status_code=404, detail=ACTION_NOT_FOUND)
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
     is_admin = current_user["active_role"] == settings.ROLE_ADMIN
     is_process_owner = current_user["id"] == action.get("created_by")
     is_action_leader = current_user["id"] == action.get("leader_id")
@@ -630,7 +582,7 @@ async def preview_action_file(
     if not action:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=ACTION_NOT_FOUND
+            detail="Acción no encontrada"
         )
     
     # Check permissions

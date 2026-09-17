@@ -7,85 +7,6 @@ from app.models.action import get_action_by_id
 
 logger = logging.getLogger(__name__)
 
-PROCESS_ID_FILTER_SQL = " AND process_id = ?"
-
-# date_range -> fragmento SQL. Se sacó de las cadenas if/elif para que las funciones
-# que los usan no se pasen del límite de complejidad cognitiva.
-_RECENCY_DATE_FILTERS = {
-    "week": "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))",
-    "month": "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))",
-    "quarter": "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))",
-    "year": "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))",
-}
-
-_DEADLINE_DATE_FILTERS = {
-    "week": "AND target_date <= date('now', '+7 days')",
-    "month": "AND target_date <= date('now', '+1 month')",
-    "quarter": "AND target_date <= date('now', '+3 months')",
-    "year": "AND target_date <= date('now', '+1 year')",
-}
-
-_TIME_SERIES_CONFIG = {
-    "week": (7, "day", "%Y-%m-%d", "strftime('%Y-%m-%d', created_at)"),
-    "month": (30, "day", "%Y-%m-%d", "strftime('%Y-%m-%d', created_at)"),
-    "quarter": (90, "week", "%Y-%W", "strftime('%Y-%W', created_at)"),
-    "year": (365, "month", "%Y-%m", "strftime('%Y-%m', created_at)"),
-}
-
-
-def _get_recency_date_filter(date_range: str) -> str:
-    """Filtro SQL para registros creados/actualizados hace poco, dentro de un rango de fechas."""
-    return _RECENCY_DATE_FILTERS.get(date_range, "")
-
-
-def _get_deadline_date_filter(date_range: str) -> str:
-    """Filtro SQL para registros cuya target_date cae dentro de un rango de fechas."""
-    return _DEADLINE_DATE_FILTERS.get(date_range, "")
-
-
-def _get_time_series_config(date_range: str) -> Tuple[int, str, str, str]:
-    """Devuelve (days, interval, format_str, group_by) según el rango de fechas de la tendencia."""
-    return _TIME_SERIES_CONFIG.get(date_range, _TIME_SERIES_CONFIG["month"])
-
-
-def _generate_date_series(today: date, days: int, interval: str, format_str: str) -> List[str]:
-    """Arma la lista ordenada de etiquetas de periodo (días/semanas/meses) para el gráfico de tendencia."""
-    series: List[str] = []
-    for i in range(days, -1, -1):
-        date_point = today - timedelta(days=i)
-        label = date_point.strftime(format_str)
-        if label not in series:
-            series.append(label)
-    return series
-
-
-async def _fetch_actions_for_status(
-    status: str, process_id: Optional[int], date_filter: str, limit: int
-) -> List[Dict[str, Any]]:
-    """Trae las acciones de un estado puntual, aplicando los mismos filtros que la consulta de conteo."""
-    query = """
-        SELECT a.*,
-               u1.name as leader_name,
-               p.name as process_name
-        FROM actions a
-        LEFT JOIN users u1 ON a.leader_id = u1.id
-        LEFT JOIN processes p ON a.process_id = p.id
-        WHERE a.status = ?
-    """
-    action_params = [status]
-
-    if process_id:
-        query += " AND a.process_id = ?"
-        action_params.append(process_id)
-
-    if date_filter:
-        query += f" {date_filter}"
-
-    query += " ORDER BY a.updated_at DESC LIMIT ?"
-    action_params.append(limit)
-
-    return await get_all(query, tuple(action_params))
-
 
 async def get_dashboard_statistics() -> Dict[str, Any]:
     """Get general dashboard statistics."""
@@ -123,7 +44,7 @@ async def get_dashboard_statistics() -> Dict[str, Any]:
             "last_action": last_action
         }
     except Exception as e:
-        logger.exception("Error getting dashboard statistics")
+        logger.error(f"Error getting dashboard statistics: {str(e)}")
         return {
             "total_actions": 0,
             "completed_actions": 0,
@@ -153,7 +74,7 @@ async def get_actions_by_type() -> List[Dict[str, Any]]:
         )
         return results
     except Exception as e:
-        logger.exception("Error getting actions by type")
+        logger.error(f"Error getting actions by type: {str(e)}")
         return []
 
 
@@ -176,39 +97,72 @@ async def get_actions_by_status(
         List of actions grouped by status
     """
     try:
-        date_filter = _get_recency_date_filter(date_range)
-
+        # Add date filtering
+        date_filter = ""
+        if date_range == "week":
+            date_filter = "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
+        elif date_range == "month":
+            date_filter = "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
+        elif date_range == "quarter":
+            date_filter = "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
+        elif date_range == "year":
+            date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+        
         # Add process filter
         query_params = []
-
+        
         # Query for counts
         query = """
             SELECT status, COUNT(*) as count
             FROM actions
             WHERE 1=1
         """
-
+        
         if process_id:
-            query += PROCESS_ID_FILTER_SQL
+            query += " AND process_id = ?"
             query_params.append(process_id)
-
+            
         if date_filter:
             query += f" {date_filter}"
-
+            
         query += " GROUP BY status"
-
+        
         counts = await get_all(query, tuple(query_params))
-
+        
         # If we need to include the actions, get them for each status
         if include_actions:
             for status_item in counts:
-                status_item["actions"] = await _fetch_actions_for_status(
-                    status_item["status"], process_id, date_filter, limit
-                )
-
+                status = status_item["status"]
+                
+                # Get actions for this status
+                query = """
+                    SELECT a.*, 
+                           u1.name as leader_name,
+                           p.name as process_name
+                    FROM actions a
+                    LEFT JOIN users u1 ON a.leader_id = u1.id
+                    LEFT JOIN processes p ON a.process_id = p.id
+                    WHERE a.status = ?
+                """
+                action_params = [status]
+                
+                if process_id:
+                    query += " AND a.process_id = ?"
+                    action_params.append(process_id)
+                    
+                if date_filter:
+                    query += f" {date_filter}"
+                    
+                query += " ORDER BY a.updated_at DESC LIMIT ?"
+                action_params.append(limit)
+                
+                actions = await get_all(query, tuple(action_params))
+                
+                status_item["actions"] = actions
+        
         return counts
     except Exception as e:
-        logger.exception("Error getting actions by status")
+        logger.error(f"Error getting actions by status: {str(e)}")
         return []
 
 
@@ -229,8 +183,17 @@ async def get_upcoming_deadlines(
         List of actions with upcoming deadlines
     """
     try:
-        date_filter = _get_deadline_date_filter(date_range)
-
+        # Determine date range
+        date_filter = ""
+        if date_range == "week":
+            date_filter = "AND target_date <= date('now', '+7 days')"
+        elif date_range == "month":
+            date_filter = "AND target_date <= date('now', '+1 month')"
+        elif date_range == "quarter":
+            date_filter = "AND target_date <= date('now', '+3 months')"
+        elif date_range == "year":
+            date_filter = "AND target_date <= date('now', '+1 year')"
+        
         # Build query with proper parameterization
         query_params = [limit]  # Start with limit as a parameter
         
@@ -260,7 +223,7 @@ async def get_upcoming_deadlines(
         
         return actions
     except Exception as e:
-        logger.exception("Error getting upcoming deadlines")
+        logger.error(f"Error getting upcoming deadlines: {str(e)}")
         return []
 
 
@@ -279,8 +242,17 @@ async def get_completion_rate(
         Completion rate as a percentage
     """
     try:
-        date_filter = _get_recency_date_filter(date_range)
-
+        # Add date filtering
+        date_filter = ""
+        if date_range == "week":
+            date_filter = "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
+        elif date_range == "month":
+            date_filter = "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
+        elif date_range == "quarter":
+            date_filter = "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
+        elif date_range == "year":
+            date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+        
         # Query with proper parameterization
         query_params = []
         
@@ -292,7 +264,7 @@ async def get_completion_rate(
         """
         
         if process_id:
-            total_query += PROCESS_ID_FILTER_SQL
+            total_query += " AND process_id = ?"
             query_params.append(process_id)
             
         if date_filter:
@@ -308,7 +280,7 @@ async def get_completion_rate(
         """
         
         if process_id:
-            completed_query += PROCESS_ID_FILTER_SQL
+            completed_query += " AND process_id = ?"
             # We reuse the same parameters as before
             
         if date_filter:
@@ -323,7 +295,7 @@ async def get_completion_rate(
         
         return {"rate": rate}
     except Exception as e:
-        logger.exception("Error getting completion rate")
+        logger.error(f"Error getting completion rate: {str(e)}")
         return {"rate": 0}
 
 
@@ -342,34 +314,97 @@ async def get_actions_over_time(
         List of action counts by date
     """
     try:
-        days, interval, format_str, group_by = _get_time_series_config(date_range)
+        # Determine interval and time span
+        interval = "day"
+        format_str = "%Y-%m-%d"
+        group_by = "strftime('%Y-%m-%d', created_at)"
+        
+        if date_range == "week":
+            days = 7
+        elif date_range == "month":
+            days = 30
+        elif date_range == "quarter":
+            days = 90
+            interval = "week"
+            format_str = "%Y-%W"
+            group_by = "strftime('%Y-%W', created_at)"
+        elif date_range == "year":
+            days = 365
+            interval = "month"
+            format_str = "%Y-%m"
+            group_by = "strftime('%Y-%m', created_at)"
+        else:
+            days = 30  # Default to month
+        
+        # Generate date series
+        date_series = []
         today = datetime.now().date()
-        date_series = _generate_date_series(today, days, interval, format_str)
-
+        
+        for i in range(days, -1, -1):
+            if interval == "day":
+                date_point = today - timedelta(days=i)
+                date_series.append(date_point.strftime(format_str))
+            elif interval == "week":
+                date_point = today - timedelta(days=i)
+                week_num = date_point.strftime("%Y-%W")
+                if week_num not in date_series:
+                    date_series.append(week_num)
+            elif interval == "month":
+                date_point = today - timedelta(days=i)
+                month = date_point.strftime("%Y-%m")
+                if month not in date_series:
+                    date_series.append(month)
+        
+        # Set up query parameters
         params = []
         process_condition = ""
+        
         if process_id:
             process_condition = "AND process_id = ?"
             params.append(process_id)
-
-        async def _count_by_date(status_clause: str) -> Dict[str, int]:
-            rows = await get_all(
-                f"""
-                SELECT {group_by} as date, COUNT(*) as count
-                FROM actions
-                WHERE {status_clause} {process_condition}
-                AND created_at >= date('now', '-{days} days')
-                GROUP BY date
-                ORDER BY date
-                """,
-                tuple(params)
-            )
-            return {item["date"]: item["count"] for item in rows}
-
-        completed_dict = await _count_by_date("status = 'completed'")
-        pending_dict = await _count_by_date("status IN ('pending', 'in_progress')")
-        overdue_dict = await _count_by_date("status = 'overdue'")
-
+        
+        # Get action counts by date and status
+        completed_by_date = await get_all(
+            f"""
+            SELECT {group_by} as date, COUNT(*) as count
+            FROM actions
+            WHERE status = 'completed' {process_condition}
+            AND created_at >= date('now', '-{days} days')
+            GROUP BY date
+            ORDER BY date
+            """,
+            tuple(params)
+        )
+        
+        pending_by_date = await get_all(
+            f"""
+            SELECT {group_by} as date, COUNT(*) as count
+            FROM actions
+            WHERE status IN ('pending', 'in_progress') {process_condition}
+            AND created_at >= date('now', '-{days} days')
+            GROUP BY date
+            ORDER BY date
+            """,
+            tuple(params)
+        )
+        
+        overdue_by_date = await get_all(
+            f"""
+            SELECT {group_by} as date, COUNT(*) as count
+            FROM actions
+            WHERE status = 'overdue' {process_condition}
+            AND created_at >= date('now', '-{days} days')
+            GROUP BY date
+            ORDER BY date
+            """,
+            tuple(params)
+        )
+        
+        # Convert to dictionaries for faster lookup
+        completed_dict = {item["date"]: item["count"] for item in completed_by_date}
+        pending_dict = {item["date"]: item["count"] for item in pending_by_date}
+        overdue_dict = {item["date"]: item["count"] for item in overdue_by_date}
+        
         # Combine results
         result = []
         for date_str in date_series:
@@ -382,7 +417,7 @@ async def get_actions_over_time(
         
         return result
     except Exception as e:
-        logger.exception("Error getting actions over time")
+        logger.error(f"Error getting actions over time: {str(e)}")
         return []
 
 
@@ -419,5 +454,5 @@ async def get_process_statistics(include_zero_counts: bool = False) -> List[Dict
         
         return processes
     except Exception as e:
-        logger.exception("Error getting process statistics")
+        logger.error(f"Error getting process statistics: {str(e)}")
         return []

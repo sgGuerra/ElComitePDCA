@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  FaFilePdf, FaDownload, FaComment, FaEye, FaHistory,
-  FaPlusCircle, FaSync, FaClipboardCheck
+import { useNavigate } from 'react-router-dom';
+import { 
+  FaFilePdf, FaDownload, FaComment, FaEye, FaHistory, 
+  FaPlusCircle, FaSearch, FaSync, FaFilter, FaClipboardCheck 
 } from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import auditService from '../services/auditService';
 import processService from '../services/processService';
@@ -25,7 +27,9 @@ const AuditorPanel = () => {
     recommendations: ''
   });
   
+  const { user } = useAuth();
   const { success, error: showError } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchInitialData();
@@ -140,18 +144,6 @@ const AuditorPanel = () => {
     }
   };
 
-  const getStatusLabel = (statusValue) => {
-    if (statusValue === 'pending') return 'Pendiente';
-    if (statusValue === 'reviewed') return 'Revisado';
-    return 'Borrador';
-  };
-
-  const getStatusBadgeClass = (statusValue) => {
-    if (statusValue === 'pending') return 'bg-yellow-100 text-yellow-700';
-    if (statusValue === 'reviewed') return 'bg-green-100 text-green-700';
-    return 'bg-gray-100 text-gray-700';
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -228,11 +220,10 @@ const AuditorPanel = () => {
                   <form onSubmit={handleCreateReport}>
                     <div className="space-y-4">
                       <div>
-                        <label htmlFor="report-title" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Título del Informe
                         </label>
                         <input
-                          id="report-title"
                           type="text"
                           name="title"
                           value={newReportForm.title}
@@ -241,13 +232,12 @@ const AuditorPanel = () => {
                           required
                         />
                       </div>
-
+                      
                       <div>
-                        <label htmlFor="report-process" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Proceso
                         </label>
                         <select
-                          id="report-process"
                           name="process_id"
                           value={newReportForm.process_id}
                           onChange={handleFormChange}
@@ -262,13 +252,12 @@ const AuditorPanel = () => {
                           ))}
                         </select>
                       </div>
-
+                      
                       <div>
-                        <label htmlFor="report-findings" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Hallazgos
                         </label>
                         <textarea
-                          id="report-findings"
                           name="findings"
                           value={newReportForm.findings}
                           onChange={handleFormChange}
@@ -276,13 +265,12 @@ const AuditorPanel = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
                         ></textarea>
                       </div>
-
+                      
                       <div>
-                        <label htmlFor="report-recommendations" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Recomendaciones
                         </label>
                         <textarea
-                          id="report-recommendations"
                           name="recommendations"
                           value={newReportForm.recommendations}
                           onChange={handleFormChange}
@@ -323,20 +311,24 @@ const AuditorPanel = () => {
                 ) : (
                   <div className="space-y-3">
                     {reports.map((report) => (
-                      <button
+                      <div
                         key={report.id}
-                        type="button"
-                        onClick={() => handleViewReport(report)}
-                        className={`w-full text-left p-4 border rounded-lg cursor-pointer transition-colors ${
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                           selectedReport?.id === report.id
                             ? 'border-primary bg-primary/5'
                             : 'border-gray-200 hover:bg-gray-50'
                         }`}
+                        onClick={() => handleViewReport(report)}
                       >
                         <div className="flex justify-between items-start">
                           <h3 className="font-medium">{report.title}</h3>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(report.status)}`}>
-                            {getStatusLabel(report.status)}
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            report.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            report.status === 'reviewed' ? 'bg-green-100 text-green-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {report.status === 'pending' ? 'Pendiente' :
+                             report.status === 'reviewed' ? 'Revisado' : 'Borrador'}
                           </span>
                         </div>
                         <p className="text-sm text-gray-500 mt-1">
@@ -345,7 +337,7 @@ const AuditorPanel = () => {
                         <p className="text-sm text-gray-500">
                           Fecha: {formatDate(report.created_at)}
                         </p>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -382,7 +374,10 @@ const AuditorPanel = () => {
                       <p><strong>Proceso:</strong> {selectedReport.process_name || 'N/A'}</p>
                       <p><strong>Creado por:</strong> {selectedReport.auditor_name}</p>
                       <p><strong>Fecha:</strong> {formatDate(selectedReport.created_at)}</p>
-                      <p><strong>Estado:</strong> {getStatusLabel(selectedReport.status)}</p>
+                      <p><strong>Estado:</strong> {
+                        selectedReport.status === 'pending' ? 'Pendiente' :
+                        selectedReport.status === 'reviewed' ? 'Revisado' : 'Borrador'
+                      }</p>
                     </div>
                     
                     <div>
@@ -398,18 +393,15 @@ const AuditorPanel = () => {
                       
                       {selectedReport.comments && selectedReport.comments.length > 0 ? (
                         <div className="space-y-3 mb-4">
-                          {selectedReport.comments.map((commentItem) => (
-                            <div
-                              key={commentItem.id ?? `${commentItem.author_name}-${commentItem.created_at}`}
-                              className="bg-gray-50 p-3 rounded-lg"
-                            >
+                          {selectedReport.comments.map((comment, index) => (
+                            <div key={index} className="bg-gray-50 p-3 rounded-lg">
                               <div className="flex justify-between">
-                                <span className="font-medium">{commentItem.author_name}</span>
+                                <span className="font-medium">{comment.author_name}</span>
                                 <span className="text-xs text-gray-500">
-                                  {new Date(commentItem.created_at).toLocaleString()}
+                                  {new Date(comment.created_at).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="mt-1">{commentItem.content}</p>
+                              <p className="mt-1">{comment.content}</p>
                             </div>
                           ))}
                         </div>

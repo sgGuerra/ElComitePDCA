@@ -32,4 +32,17 @@ describe('ConfigurationManagement - recordatorios', () => {
     expect(confirmSpy).toHaveBeenCalled();
     expect(checkbox.checked).toBe(true); // sigue activo: la cancelación no lo apagó
   });
+
+  it('E16: desactiva el recordatorio si el usuario confirma la advertencia', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<ConfigurationManagement />);
+
+    fireEvent.click(screen.getByText('Notificaciones'));
+    const checkbox = document.getElementById('notifyOnDueDateApproaching');
+
+    fireEvent.click(checkbox);
+
+    expect(checkbox.checked).toBe(false);
+  });
 });

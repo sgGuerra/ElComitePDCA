@@ -78,3 +78,36 @@ class TestPeriodoSinDatosYDivisionPorCero:
         proc = next(p for p in data if p["process_name"] == "Proceso Sin Acciones")
         assert proc["total_actions"] == 0
         assert proc["completion_rate"] == 0.0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Rangos de Fecha Válidos e Inválidos
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestFiltrosRangoFecha:
+    """Verifica el comportamiento de los filtros week, month, quarter, year."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("range_val", ["week", "month", "quarter", "year"])
+    async def test_date_range_validos_retornan_200(self, client, range_val):
+        admin = await create_test_user(name=f"Admin {range_val}", email=f"{range_val}@test.com", roles="admin")
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            f"/api/statistics/actions-over-time?date_range={range_val}",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_date_range_invalido_retorna_422(self, client):
+        admin = await create_test_user(name="Admin Inv", email="inv_range@test.com", roles="admin")
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/statistics/actions-over-time?date_range=siglo_pasado",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 422

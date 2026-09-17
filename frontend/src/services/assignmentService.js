@@ -9,7 +9,6 @@ const assignmentService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error assigning leader to process:', error);
       throw error;
     }
   },
@@ -19,7 +18,6 @@ const assignmentService = {
       const response = await apiClient.delete(`/api/assignments/${processId}/${leaderId}`);
       return response.data;
     } catch (error) {
-      console.error('Error removing leader from process:', error);
       throw error;
     }
   },
@@ -29,7 +27,6 @@ const assignmentService = {
       const response = await apiClient.get(`/api/assignments/process/${processId}/leaders`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching process leaders:', error);
       throw error;
     }
   },
@@ -39,7 +36,6 @@ const assignmentService = {
       const response = await apiClient.get(`/api/assignments/leader/${leaderId}/processes`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching leader processes:', error);
       throw error;
     }
   },
@@ -53,7 +49,6 @@ const assignmentService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Error transferring process leadership:', error);
       throw error;
     }
   },
@@ -63,7 +58,6 @@ const assignmentService = {
       const response = await apiClient.get('/api/assignments/available-leaders');
       return response.data;
     } catch (error) {
-      console.error('Error fetching available leaders:', error);
       throw error;
     }
   }

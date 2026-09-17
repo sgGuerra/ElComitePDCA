@@ -2,10 +2,12 @@
 RF-08 · Generación y Exportación de Informes Personalizados
 ============================================================
 
-Pruebas unitarias (backend). Las pruebas de exportación de CSV (E06, E08)
-viven en frontend/src/pages/ActionsList.test.jsx, junto al código que
-corrigen. Aquí solo queda la prueba de seguridad más representativa:
-  - Seguridad: un auditor no puede ver/descargar el informe de otro auditor
+Pruebas unitarias para las condiciones y escenarios de prueba:
+  - Intentar generar PDF de un informe sin seleccionar un reporte (report_id inexistente)
+  - Reintentar exportar/descargar cuando ya se cerró la sesión o se venció el token (401)
+  - Consulta de reportes con filtros que dejan la lista vacía
+  - Seguridad: Intentar acceder o descargar informe de otro auditor (403 Forbidden)
+  - Auditor crea y descarga informe propio exitosamente
 """
 
 import pytest
@@ -18,6 +20,72 @@ from tests.conftest import (
     auth_headers,
 )
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Validación de Tokens y Sesión Vencida (401)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestSesionYAutenticacionExportacion:
+    """Validación de token vencido o faltante en la exportación/descarga de informes."""
+
+    @pytest.mark.asyncio
+    async def test_descargar_sin_token_retorna_401(self, client):
+        response = await client.get("/api/audit/reports/1/download")
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_descargar_con_token_invalido_retorna_401(self, client):
+        headers = {"Authorization": "Bearer token_invalido_o_expirado"}
+        response = await client.get("/api/audit/reports/1/download", headers=headers)
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_listar_reportes_sin_token_retorna_401(self, client):
+        response = await client.get("/api/audit/reports")
+        assert response.status_code == 401
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Descarga y Generación con Reporte Inexistente o Sin Selección (404)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestSeleccionDeReporteYFiltros:
+    """Escenarios de intento de descarga sin reporte o con filtros vacíos."""
+
+    @pytest.mark.asyncio
+    async def test_descargar_informe_inexistente_retorna_404(self, client):
+        admin = await create_test_user(name="Admin", email="admin_exp@test.com", roles="admin")
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/audit/reports/9999/download",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        error_msg = data.get("message") or data.get("detail", "")
+        assert len(error_msg) > 0
+
+    @pytest.mark.asyncio
+    async def test_consultar_informes_con_filtro_proceso_inexistente_retorna_vacio(self, client):
+        admin = await create_test_user(name="Admin", email="admin_filt@test.com", roles="admin")
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/audit/reports?process_id=99999",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Control de Acceso y Permisos (403 Forbidden)
+# ──────────────────────────────────────────────────────────────────────────────
 
 class TestPermisosAccesoInformes:
     """Un auditor no puede acceder ni descargar los informes de otro auditor."""

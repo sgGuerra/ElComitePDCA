@@ -1,6 +1,6 @@
 // src/components/ConfigurationManagement.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaSave, FaCog, FaBell, FaEnvelope, FaUser, FaShieldAlt, FaServer } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 import LoadingOverlay from './LoadingOverlay';
@@ -79,8 +79,8 @@ const ConfigurationManagement = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // In a real application, this would be an API call to save the configuration
-      // await configService.saveConfiguration(activeTab, currentTabConfig);
-
+      // await configService.saveConfiguration(activeTab, getActiveConfig());
+      
       success('Configuración guardada exitosamente');
       setChanges(false);
     } catch (err) {
@@ -91,16 +91,24 @@ const ConfigurationManagement = () => {
     }
   };
   
-  // Handle input change for the current active configuration
-  const getInputValue = (target) => {
-    if (target.type === 'checkbox') return target.checked;
-    if (target.type === 'number') return Number.parseInt(target.value, 10);
-    return target.value;
+  // Get the current active configuration object based on the active tab
+  const getActiveConfig = () => {
+    switch (activeTab) {
+      case 'general': return generalConfig;
+      case 'notifications': return notificationConfig;
+      case 'email': return emailConfig;
+      case 'users': return userConfig;
+      case 'security': return securityConfig;
+      case 'system': return systemConfig;
+      default: return generalConfig;
+    }
   };
-
+  
+  // Handle input change for the current active configuration
   const handleInputChange = (e) => {
-    const { name } = e.target;
-    const inputValue = getInputValue(e.target);
+    const { name, value, type, checked } = e.target;
+    const inputValue = type === 'checkbox' ? checked :
+                      type === 'number' ? parseInt(value, 10) : value;
 
     // E16: desactivar el recordatorio de vencimiento no pedía ninguna advertencia
     if (
@@ -156,9 +164,8 @@ const ConfigurationManagement = () => {
   const renderGeneralForm = () => (
     <div className="space-y-4">
       <div>
-        <label htmlFor="cfg-siteName" className="block text-sm font-medium text-gray-700">Nombre del Sitio</label>
-
-        <input id="cfg-siteName"
+        <label className="block text-sm font-medium text-gray-700">Nombre del Sitio</label>
+        <input
           type="text"
           name="siteName"
           value={generalConfig.siteName}
@@ -168,9 +175,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-siteDescription" className="block text-sm font-medium text-gray-700">Descripción del Sitio</label>
-
-        <input id="cfg-siteDescription"
+        <label className="block text-sm font-medium text-gray-700">Descripción del Sitio</label>
+        <input
           type="text"
           name="siteDescription"
           value={generalConfig.siteDescription}
@@ -181,9 +187,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="cfg-defaultLanguage" className="block text-sm font-medium text-gray-700">Idioma Predeterminado</label>
-
-          <select id="cfg-defaultLanguage"
+          <label className="block text-sm font-medium text-gray-700">Idioma Predeterminado</label>
+          <select
             name="defaultLanguage"
             value={generalConfig.defaultLanguage}
             onChange={handleInputChange}
@@ -196,9 +201,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label htmlFor="cfg-itemsPerPage" className="block text-sm font-medium text-gray-700">Elementos por Página</label>
-
-          <input id="cfg-itemsPerPage"
+          <label className="block text-sm font-medium text-gray-700">Elementos por Página</label>
+          <input
             type="number"
             name="itemsPerPage"
             value={generalConfig.itemsPerPage}
@@ -211,9 +215,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-timezone" className="block text-sm font-medium text-gray-700">Zona Horaria</label>
-
-        <select id="cfg-timezone"
+        <label className="block text-sm font-medium text-gray-700">Zona Horaria</label>
+        <select
           name="timezone"
           value={generalConfig.timezone}
           onChange={handleInputChange}
@@ -342,9 +345,8 @@ const ConfigurationManagement = () => {
   const renderEmailForm = () => (
     <div className="space-y-4">
       <div>
-        <label htmlFor="cfg-smtpServer" className="block text-sm font-medium text-gray-700">Servidor SMTP</label>
-
-        <input id="cfg-smtpServer"
+        <label className="block text-sm font-medium text-gray-700">Servidor SMTP</label>
+        <input
           type="text"
           name="smtpServer"
           value={emailConfig.smtpServer}
@@ -356,9 +358,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="cfg-smtpPort" className="block text-sm font-medium text-gray-700">Puerto SMTP</label>
-
-          <input id="cfg-smtpPort"
+          <label className="block text-sm font-medium text-gray-700">Puerto SMTP</label>
+          <input
             type="number"
             name="smtpPort"
             value={emailConfig.smtpPort}
@@ -384,9 +385,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="cfg-smtpUsername" className="block text-sm font-medium text-gray-700">Usuario SMTP</label>
-
-          <input id="cfg-smtpUsername"
+          <label className="block text-sm font-medium text-gray-700">Usuario SMTP</label>
+          <input
             type="text"
             name="smtpUsername"
             value={emailConfig.smtpUsername}
@@ -397,9 +397,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label htmlFor="cfg-smtpPassword" className="block text-sm font-medium text-gray-700">Contraseña SMTP</label>
-
-          <input id="cfg-smtpPassword"
+          <label className="block text-sm font-medium text-gray-700">Contraseña SMTP</label>
+          <input
             type="password"
             name="smtpPassword"
             value={emailConfig.smtpPassword}
@@ -411,9 +410,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-emailSender" className="block text-sm font-medium text-gray-700">Correo del Remitente</label>
-
-        <input id="cfg-emailSender"
+        <label className="block text-sm font-medium text-gray-700">Correo del Remitente</label>
+        <input
           type="email"
           name="emailSender"
           value={emailConfig.emailSender}
@@ -423,9 +421,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-emailFooter" className="block text-sm font-medium text-gray-700">Pie de página del correo</label>
-
-        <textarea id="cfg-emailFooter"
+        <label className="block text-sm font-medium text-gray-700">Pie de página del correo</label>
+        <textarea
           name="emailFooter"
           value={emailConfig.emailFooter}
           onChange={handleInputChange}
@@ -469,9 +466,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="cfg-passwordMinLength" className="block text-sm font-medium text-gray-700">Longitud mínima de contraseña</label>
-
-          <input id="cfg-passwordMinLength"
+          <label className="block text-sm font-medium text-gray-700">Longitud mínima de contraseña</label>
+          <input
             type="number"
             name="passwordMinLength"
             value={userConfig.passwordMinLength}
@@ -483,9 +479,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label htmlFor="cfg-sessionTimeout" className="block text-sm font-medium text-gray-700">Tiempo de sesión (minutos)</label>
-
-          <input id="cfg-sessionTimeout"
+          <label className="block text-sm font-medium text-gray-700">Tiempo de sesión (minutos)</label>
+          <input
             type="number"
             name="sessionTimeout"
             value={userConfig.sessionTimeout}
@@ -527,9 +522,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-maxLoginAttempts" className="block text-sm font-medium text-gray-700">Máximo de intentos de inicio de sesión</label>
-
-        <input id="cfg-maxLoginAttempts"
+        <label className="block text-sm font-medium text-gray-700">Máximo de intentos de inicio de sesión</label>
+        <input
           type="number"
           name="maxLoginAttempts"
           value={userConfig.maxLoginAttempts}
@@ -560,9 +554,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-allowedIpAddresses" className="block text-sm font-medium text-gray-700">Direcciones IP permitidas</label>
-
-        <textarea id="cfg-allowedIpAddresses"
+        <label className="block text-sm font-medium text-gray-700">Direcciones IP permitidas</label>
+        <textarea
           name="allowedIpAddresses"
           value={securityConfig.allowedIpAddresses}
           onChange={handleInputChange}
@@ -576,9 +569,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-corsOrigins" className="block text-sm font-medium text-gray-700">Orígenes CORS permitidos</label>
-
-        <input id="cfg-corsOrigins"
+        <label className="block text-sm font-medium text-gray-700">Orígenes CORS permitidos</label>
+        <input
           type="text"
           name="corsOrigins"
           value={securityConfig.corsOrigins}
@@ -604,9 +596,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="cfg-apiRateLimitRequests" className="block text-sm font-medium text-gray-700">Solicitudes máximas</label>
-
-          <input id="cfg-apiRateLimitRequests"
+          <label className="block text-sm font-medium text-gray-700">Solicitudes máximas</label>
+          <input
             type="number"
             name="apiRateLimitRequests"
             value={securityConfig.apiRateLimitRequests}
@@ -617,9 +608,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label htmlFor="cfg-apiRateLimitTime" className="block text-sm font-medium text-gray-700">Periodo de tiempo (minutos)</label>
-
-          <input id="cfg-apiRateLimitTime"
+          <label className="block text-sm font-medium text-gray-700">Periodo de tiempo (minutos)</label>
+          <input
             type="number"
             name="apiRateLimitTime"
             value={securityConfig.apiRateLimitTime}
@@ -650,9 +640,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label htmlFor="cfg-logLevel" className="block text-sm font-medium text-gray-700">Nivel de registro</label>
-
-        <select id="cfg-logLevel"
+        <label className="block text-sm font-medium text-gray-700">Nivel de registro</label>
+        <select
           name="logLevel"
           value={systemConfig.logLevel}
           onChange={handleInputChange}
@@ -696,9 +685,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="cfg-backupFrequency" className="block text-sm font-medium text-gray-700">Frecuencia de copia de seguridad</label>
-
-          <select id="cfg-backupFrequency"
+          <label className="block text-sm font-medium text-gray-700">Frecuencia de copia de seguridad</label>
+          <select
             name="backupFrequency"
             value={systemConfig.backupFrequency}
             onChange={handleInputChange}
@@ -712,9 +700,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label htmlFor="cfg-backupRetentionDays" className="block text-sm font-medium text-gray-700">Días de retención de copias</label>
-
-          <input id="cfg-backupRetentionDays"
+          <label className="block text-sm font-medium text-gray-700">Días de retención de copias</label>
+          <input
             type="number"
             name="backupRetentionDays"
             value={systemConfig.backupRetentionDays}
