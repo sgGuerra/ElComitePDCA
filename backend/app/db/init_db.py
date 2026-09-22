@@ -28,9 +28,14 @@ CREATE TABLE IF NOT EXISTS processes (
     description TEXT,
     created_by INTEGER NOT NULL,
     status TEXT DEFAULT 'active',
+    owner TEXT,
+    leader_id INTEGER,
+    priority TEXT DEFAULT 'medium',
+    departmentId TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users (id)
+    FOREIGN KEY (created_by) REFERENCES users (id),
+    FOREIGN KEY (leader_id) REFERENCES users (id)
 );
 """
 
@@ -210,8 +215,29 @@ async def init_db():
                     logger.error(f"Statement was: {create_statement}")
                     raise
             await conn.commit()
+            
+            # Run migrations: add missing columns to existing tables
+            migrations = [
+                ("processes", "owner", "TEXT"),
+                ("processes", "leader_id", "INTEGER"),
+                ("processes", "priority", "TEXT DEFAULT 'medium'"),
+                ("processes", "departmentId", "TEXT"),
+            ]
+            
+            for table, column, col_type in migrations:
+                try:
+                    await conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                    logger.info(f"Added column {column} to {table}")
+                    await conn.commit()
+                except Exception as e:
+                    # Column likely already exists, this is expected
+                    if "duplicate column" in str(e).lower():
+                        logger.info(f"Column {column} already exists in {table}")
+                    else:
+                        logger.warning(f"Could not add column {column} to {table}: {e}")
         
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {e}")
         raise
+

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:cov": "vitest run --coverage"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.4",
@@ -33,6 +34,11 @@
     "globals": "^15.15.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^3.0.7",
+    "@vitest/coverage-v8": "^3.0.7",
+    "jsdom": "^26.0.0",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/jest-dom": "^6.6.3"
   }
 }

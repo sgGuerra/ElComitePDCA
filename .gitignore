@@ -23,12 +23,17 @@ dist-ssr
 *.sln
 *.sw?
 
+backend/__pycache__
+frontend/__pycache__
+__pycache__
+
 # Entornos y Variables
 .env
 .env.*
 .venv/
 venv/
 env/
+test.md
 
 # Python (Backend)
 __pycache__/
@@ -70,4 +75,5 @@ ehthumbs.db
 
 # SonarQube / coverage reports
 .scannerwork/
+.sonarlint/
 coverage.xml

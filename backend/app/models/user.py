@@ -1,7 +1,7 @@
 import logging
 import bcrypt
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.user import UserCreate, UserUpdate
@@ -82,9 +82,9 @@ async def get_all_users() -> List[Dict[str, Any]]:
                 
             # Ensure created_at and updated_at fields exist (for schema validation)
             if "created_at" not in user or user["created_at"] is None:
-                user["created_at"] = datetime.utcnow()
+                user["created_at"] = datetime.now(timezone.utc)
             if "updated_at" not in user or user["updated_at"] is None:
-                user["updated_at"] = datetime.utcnow()
+                user["updated_at"] = datetime.now(timezone.utc)
         
         return users
     except Exception as e:
