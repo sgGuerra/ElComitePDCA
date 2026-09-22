@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.api.endpoints import (
     auth, users, processes, actions, notifications, 
-    statistics, deactivation, comments, audit
+    statistics, deactivation, comments, audit, assignments
 )
 
 api_router = APIRouter()
@@ -12,6 +12,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(processes.router, prefix="/processes", tags=["Processes"])
 api_router.include_router(actions.router, prefix="/actions", tags=["Actions"])
+api_router.include_router(assignments.router, prefix="/assignments", tags=["Assignments"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(statistics.router, prefix="/statistics", tags=["Statistics"])
 api_router.include_router(deactivation.router, prefix="/deactivation", tags=["User Deactivation"])

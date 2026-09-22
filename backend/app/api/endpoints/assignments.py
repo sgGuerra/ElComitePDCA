@@ -17,6 +17,7 @@ from app.schemas.user import User
 router = APIRouter()
 
 
+@router.post("", response_model=Assignment)
 @router.post("/", response_model=Assignment)
 async def assign_leader(
     assignment: AssignmentCreate,

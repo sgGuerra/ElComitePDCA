@@ -1,0 +1,9 @@
+.git
+.venv
+**/__pycache__
+**/*.pyc
+node_modules
+dist
+coverage.xml
+.coverage
+backend-test-results.xml

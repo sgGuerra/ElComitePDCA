@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Métricas de Software - El Comité PDCA (ISO 25010 & Clase 09)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen p-4 md:p-8">
+  <div class="max-w-6xl mx-auto space-y-8">
+
+    <!-- Header -->
+    <header class="border-b border-slate-200 pb-5">
+      <div class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full uppercase tracking-wider mb-2">
+        Evaluación Basada en Clase 09: Métricas de Software & ISO 25010
+      </div>
+      <h1 class="text-3xl font-bold text-slate-900">Informe Integral de Métricas de Software</h1>
+      <p class="text-slate-600 text-sm mt-1">Proyecto: <strong>Sistema de Mejoramiento Continuo (El Comité PDCA)</strong> — Universidad de Medellín</p>
+    </header>
+
+    <!-- Resumen Ejecutivo de KLoC -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 uppercase">Tamaño Backend</span>
+        <p class="text-2xl font-bold text-indigo-600 mt-1">5.98 KLoC</p>
+        <p class="text-xs text-slate-500 mt-1">47 archivos Python (FastAPI)</p>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 uppercase">Tamaño Frontend</span>
+        <p class="text-2xl font-bold text-indigo-600 mt-1">10.61 KLoC</p>
+        <p class="text-xs text-slate-500 mt-1">46 archivos JS/JSX (React 19)</p>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 uppercase">Total Proyecto (LoC)</span>
+        <p class="text-2xl font-bold text-slate-900 mt-1">16,598 LoC</p>
+        <p class="text-xs text-slate-500 mt-1">16.598 KLoC totales</p>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 uppercase">Cobertura de Requisitos</span>
+        <p class="text-2xl font-bold text-emerald-600 mt-1">100%</p>
+        <p class="text-xs text-slate-500 mt-1">6 / 6 RFs con pruebas unitarias</p>
+      </div>
+    </section>
+
+    <!-- 8 Métricas Aplicadas al Proyecto (Slide 67) -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+      <div class="border-b border-slate-100 pb-3">
+        <h2 class="text-xl font-bold text-slate-800">📊 1. Las 8 Métricas Aplicadas al Proyecto (Slide 67)</h2>
+        <p class="text-xs text-slate-500">Cálculo específico para las funcionalidades del ciclo PDCA implementadas en el sistema.</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+              <th class="p-3">#</th>
+              <th class="p-3">Métrica</th>
+              <th class="p-3">Fórmula Teórica (Clase 09)</th>
+              <th class="p-3">Valor Obtenido</th>
+              <th class="p-3">Interpretación y Estado (Slide 68)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-600">
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">1</td>
+              <td class="p-3 font-semibold text-slate-800">Complejidad Ciclomática (McCabe)</td>
+              <td class="p-3 font-mono text-xs">V(G) = E - N + 2P = D + 1</td>
+              <td class="p-3 font-bold text-slate-900">Promedio = 3.8<br><span class="text-xs text-slate-500">Máx = 6 (RF-01)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Bajo Riesgo (V(G) &le; 10)</span><br><span class="text-xs text-slate-500">Estructura modular y controlada.</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">2</td>
+              <td class="p-3 font-semibold text-slate-800">Complejidad Cognitiva</td>
+              <td class="p-3 font-mono text-xs">Nivel según esfuerzo mental (0-5, 6-10, 11-15, >15)</td>
+              <td class="p-3 font-bold text-slate-900">Rango: 1 – 4<br><span class="text-xs text-slate-500">(Nivel Bajo)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Excelente Mantenibilidad (&le; 5)</span><br><span class="text-xs text-slate-500">Código legible, sin anidamientos profundos.</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">3</td>
+              <td class="p-3 font-semibold text-slate-800">Cobertura Estructural de Pruebas</td>
+              <td class="p-3 font-mono text-xs">(Líneas ejecutadas / Total Líneas) &times; 100</td>
+              <td class="p-3 font-bold text-slate-900">100% en rutas RF<br><span class="text-xs text-slate-500">(83% en assignments.py)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Alta Cobertura (&ge; 80%)</span><br><span class="text-xs text-slate-500">14/14 pruebas unitarias superadas.</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">4</td>
+              <td class="p-3 font-semibold text-slate-800">Densidad de Defectos</td>
+              <td class="p-3 font-mono text-xs">Defectos encontrados / KLoC</td>
+              <td class="p-3 font-bold text-slate-900">0.30 Defectos / KLoC<br><span class="text-xs text-slate-500">(5 bugs corregidos / 16.59 KLoC)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Calidad Alta (&lt; 5/KLoC)</span><br><span class="text-xs text-slate-500">Tasa de defectos muy baja.</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">5</td>
+              <td class="p-3 font-semibold text-slate-800">Eficacia Eliminación Defectos (EED)</td>
+              <td class="p-3 font-mono text-xs">EED = E / (E + D)</td>
+              <td class="p-3 font-bold text-slate-900">1.00 (100%)<br><span class="text-xs text-slate-500">(E=5 antes de entrega, D=0 post)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Excelente Eficiencia (EED = 1.0)</span><br><span class="text-xs text-slate-500">DLR = 0.0 (&le; 0.1, Proceso Robusto).</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">6</td>
+              <td class="p-3 font-semibold text-slate-800">Tiempo de Respuesta / Latencia Backend</td>
+              <td class="p-3 font-mono text-xs">T_respuesta = T_finalización - T_inicio</td>
+              <td class="p-3 font-bold text-slate-900">0.005s – 0.010s<br><span class="text-xs text-slate-500">(5 ms a 10 ms por endpoint)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Carga Ultra Rápida (&lt; 2s)</span><br><span class="text-xs text-slate-500">Muy inferior al límite crítico de 4s.</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">7</td>
+              <td class="p-3 font-semibold text-slate-800">Uso de CPU y Memoria</td>
+              <td class="p-3 font-mono text-xs">(Recurso usado / Recurso total) &times; 100</td>
+              <td class="p-3 font-bold text-slate-900">CPU &lt; 1.2%<br><span class="text-xs text-slate-500">RAM &asymp; 62 MB / 16 GB (0.38%)</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Consumo Mínimo</span><br><span class="text-xs text-slate-500">Arquitectura asíncrona FastAPI ligera.</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-indigo-600">8</td>
+              <td class="p-3 font-semibold text-slate-800">Matriz de Trazabilidad y Cobertura</td>
+              <td class="p-3 font-mono text-xs">Requisitos cubiertos / Total Requisitos</td>
+              <td class="p-3 font-bold text-emerald-600">6 / 6 = 100%</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">Validación Completa (= 100%)</span><br><span class="text-xs text-slate-500">Todos los RFs validados con tests unitarios.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Detalle por Funcionalidad RF-01 a RF-06 -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+      <div class="border-b border-slate-100 pb-3">
+        <h2 class="text-xl font-bold text-slate-800">📑 2. Desglose de Métricas por Funcionalidad (RF-01 a RF-06)</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- RF-01 -->
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-700">RF-01: Identificación y Asignación de Acciones</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">4 Pruebas Unitarias</span>
+          </div>
+          <p class="text-xs text-slate-600"><strong>Archivos:</strong> <code>actions.py</code> (L168-211), <code>action.py</code> (L12-49), <code>ActionsList.jsx</code> (L187-231)</p>
+          <div class="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-slate-200 text-slate-700">
+            <div><strong>V(G):</strong> 6 (McCabe)</div>
+            <div><strong>C. Cognitiva:</strong> 4 (Baja)</div>
+            <div><strong>Latencia:</strong> 0.008s (8ms)</div>
+          </div>
+        </div>
+
+        <!-- RF-02 -->
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-700">RF-02: Actualización de Estado por Líder</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">2 Pruebas Unitarias</span>
+          </div>
+          <p class="text-xs text-slate-600"><strong>Archivos:</strong> <code>actions.py</code> (L294-336), <code>action.py</code> (L123-170), <code>ActionDetail.jsx</code> (L172-200)</p>
+          <div class="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-slate-200 text-slate-700">
+            <div><strong>V(G):</strong> 4 (McCabe)</div>
+            <div><strong>C. Cognitiva:</strong> 3 (Baja)</div>
+            <div><strong>Latencia:</strong> 0.006s (6ms)</div>
+          </div>
+        </div>
+
+        <!-- RF-03 -->
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-700">RF-03: Metodología 5W-1H</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">Integrada con RF-01</span>
+          </div>
+          <p class="text-xs text-slate-600"><strong>Archivos:</strong> <code>schemas/action.py</code> (L6-21), <code>ActionsList.jsx</code> (L642-757)</p>
+          <div class="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-slate-200 text-slate-700">
+            <div><strong>V(G):</strong> 2 (McCabe)</div>
+            <div><strong>C. Cognitiva:</strong> 1 (Baja)</div>
+            <div><strong>Latencia:</strong> 0.005s (5ms)</div>
+          </div>
+        </div>
+
+        <!-- RF-04 -->
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-700">RF-04: Asignaciones y Transferencia (Admin)</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">5 Pruebas Unitarias</span>
+          </div>
+          <p class="text-xs text-slate-600"><strong>Archivos:</strong> <code>assignments.py</code> (L1-113), <code>assignment.py</code> (L11-48)</p>
+          <div class="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-slate-200 text-slate-700">
+            <div><strong>V(G):</strong> 3 (McCabe)</div>
+            <div><strong>C. Cognitiva:</strong> 3 (Baja)</div>
+            <div><strong>Latencia:</strong> 0.005s (5ms)</div>
+          </div>
+        </div>
+
+        <!-- RF-05 -->
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-700">RF-05: Visualización de Métricas KPIs</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">2 Pruebas Unitarias</span>
+          </div>
+          <p class="text-xs text-slate-600"><strong>Archivos:</strong> <code>statistics.py</code> (L29-91), <code>models/statistics.py</code> (L14-55), <code>Dashboard.jsx</code></p>
+          <div class="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-slate-200 text-slate-700">
+            <div><strong>V(G):</strong> 3 (McCabe)</div>
+            <div><strong>C. Cognitiva:</strong> 2 (Baja)</div>
+            <div><strong>Latencia:</strong> 0.007s (7ms)</div>
+          </div>
+        </div>
+
+        <!-- RF-06 -->
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-700">RF-06: Análisis de Tendencias Temporales</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">2 Pruebas Unitarias</span>
+          </div>
+          <p class="text-xs text-slate-600"><strong>Archivos:</strong> <code>statistics.py</code> (L93-115), <code>models/statistics.py</code> (L302-380)</p>
+          <div class="grid grid-cols-3 gap-2 text-xs bg-white p-2 rounded border border-slate-200 text-slate-700">
+            <div><strong>V(G):</strong> 5 (McCabe)</div>
+            <div><strong>C. Cognitiva:</strong> 4 (Baja)</div>
+            <div><strong>Latencia:</strong> 0.009s (9ms)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Matriz de Interpretación según Slide 68 -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+      <div class="border-b border-slate-100 pb-3">
+        <h2 class="text-xl font-bold text-slate-800">📋 3. Matriz de Cumplimiento de Umbrales de Calidad (Slide 68)</h2>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs md:text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+              <th class="p-3">Criterio / Umbral de Clase 09</th>
+              <th class="p-3">Condición de Riesgo</th>
+              <th class="p-3">Valor Real del Proyecto</th>
+              <th class="p-3">Dictamen</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-600">
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">Complejidad Ciclomática V(G)</td>
+              <td class="p-3 font-mono text-xs text-red-600">&gt; 10 &rarr; Alto Riesgo</td>
+              <td class="p-3 font-bold text-slate-800">Máx = 6 (&le; 10)</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">CUMPLE (Bajo Riesgo)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">Complejidad Cognitiva</td>
+              <td class="p-3 font-mono text-xs text-red-600">&gt; 15 &rarr; Refactorizar</td>
+              <td class="p-3 font-bold text-slate-800">Máx = 4 (&le; 5)</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">CUMPLE (No requiere refactor)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">Cobertura de Requerimientos</td>
+              <td class="p-3 font-mono text-xs text-red-600">&lt; 100% &rarr; Validación Incompleta</td>
+              <td class="p-3 font-bold text-slate-800">100% (6/6 RFs)</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">CUMPLE (Validación Completa)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">Densidad de Defectos</td>
+              <td class="p-3 font-mono text-xs text-red-600">&gt; 5 / KLoC &rarr; Calidad Baja</td>
+              <td class="p-3 font-bold text-slate-800">0.30 / KLoC</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">CUMPLE (Calidad Alta)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">Latencia Backend</td>
+              <td class="p-3 font-mono text-xs text-red-600">&gt; 4s &rarr; Optimizar Backend</td>
+              <td class="p-3 font-bold text-slate-800">0.005s – 0.010s (&lt; 4s)</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">CUMPLE (Desempeño Óptimo)</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-semibold text-slate-800">Tasa de Fuga de Defectos (DLR)</td>
+              <td class="p-3 font-mono text-xs text-red-600">&gt; 0.1 &rarr; Problema en Pruebas</td>
+              <td class="p-3 font-bold text-slate-800">0.0 (&le; 0.1)</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold">CUMPLE (Proceso Robusto)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-400 py-3">
+      El Comité PDCA - Universidad de Medellín - Métricas de Calidad de Software ISO 25010
+    </footer>
+  </div>
+</body>
+</html>

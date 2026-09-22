@@ -66,6 +66,8 @@ async def get_action_by_id(action_id: int) -> Optional[Dict[str, Any]]:
             """,
             (action_id,)
         )
+        if action and "location" in action:
+            action["where"] = action.get("where") or action.get("location")
         return action
     except Exception as e:
         logger.error(f"Error getting action by ID: {str(e)}")

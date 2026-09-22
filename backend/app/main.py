@@ -78,13 +78,29 @@ async def health_check():
 app.include_router(api_router, prefix="/api")
 
 # Serve static files from uploads directory
-app.mount("/uploads", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "uploads")), name="uploads")
+uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
+# Serve frontend build if exists (SPA support)
+frontend_dist = os.environ.get(
+    "FRONTEND_DIST",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
+)
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
-# 404 handler
-@app.exception_handler(404)
-async def not_found_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"success": False, "message": "Ruta no encontrada"},
-    )
+    from fastapi.responses import FileResponse
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        file_path = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"message": "Not found"})
+

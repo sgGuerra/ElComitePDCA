@@ -1,7 +1,9 @@
 import logging
+import aiosqlite
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+from app.core.config import settings
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.assignment import AssignmentCreate, AssignmentUpdate
 
@@ -50,11 +52,13 @@ async def assign_leader_to_process(assignment_data: AssignmentCreate, admin_id: 
 async def remove_leader_from_process(process_id: int, leader_id: int) -> bool:
     """Remove a leader from a process."""
     try:
-        await execute(
-            "DELETE FROM process_leaders WHERE process_id = ? AND leader_id = ?",
-            (process_id, leader_id)
-        )
-        return True
+        async with aiosqlite.connect(settings.DATABASE_URL.replace("sqlite:///", "")) as conn:
+            cursor = await conn.execute(
+                "DELETE FROM process_leaders WHERE process_id = ? AND leader_id = ?",
+                (process_id, leader_id)
+            )
+            await conn.commit()
+            return cursor.rowcount > 0
     except Exception as e:
         logger.error(f"Error removing leader from process: {e}")
         raise
