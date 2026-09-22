@@ -369,7 +369,7 @@ class PruebasUnitarias(unittest.IsolatedAsyncioTestCase):
         with patch("app.core.auth.jwt.decode", side_effect=jose_jwt.JWTError("boom")):
             with self.assertRaises(HTTPException) as ctx:
                 await get_current_user(token="abc")
-        self.assertEqual(ctx.exception.status_code, 403)
+        self.assertEqual(ctx.exception.status_code, 401)
 
         expired_payload = {"exp": 1, "sub": "2", "roles": [settings.ROLE_ADMIN], "active_role": settings.ROLE_ADMIN}
         with patch("app.core.auth.jwt.decode", return_value=expired_payload), \

@@ -11,19 +11,21 @@ logger = logging.getLogger(__name__)
 async def create_process(process_data: ProcessCreate, user_id: int) -> Dict[str, Any]:
     """Create a new process."""
     try:
-        owner = process_data.owner
+        owner = getattr(process_data, "owner", None)
+        leader_id = getattr(process_data, "leader_id", None)
+        priority = getattr(process_data, "priority", None)
+        department_id = getattr(process_data, "departmentId", None)
         
         # Auto-populate owner name from leader_id if not explicitly set
-        if not owner and process_data.leader_id:
-            leader = await get_one("SELECT name FROM users WHERE id = ?", (process_data.leader_id,))
+        if not owner and leader_id:
+            leader = await get_one("SELECT name FROM users WHERE id = ?", (leader_id,))
             if leader:
                 owner = leader["name"]
         
         process_id = await insert(
             "INSERT INTO processes (name, description, status, owner, leader_id, priority, departmentId, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (process_data.name, process_data.description, process_data.status,
-             owner, process_data.leader_id, process_data.priority,
-             process_data.departmentId, user_id)
+             owner, leader_id, priority, department_id, user_id)
         )
         
         process = await get_one("SELECT * FROM processes WHERE id = ?", (process_id,))
@@ -95,22 +97,25 @@ async def update_process(process_id: int, process_data: ProcessUpdate) -> Option
         if process_data.status is not None:
             update_fields["status"] = process_data.status
         
-        owner = process_data.owner
+        owner = getattr(process_data, "owner", None)
         # Auto-populate owner name from leader_id if leader_id is provided
-        if process_data.leader_id is not None:
-            update_fields["leader_id"] = process_data.leader_id
+        leader_id = getattr(process_data, "leader_id", None)
+        if leader_id is not None:
+            update_fields["leader_id"] = leader_id
             if not owner:
-                leader = await get_one("SELECT name FROM users WHERE id = ?", (process_data.leader_id,))
+                leader = await get_one("SELECT name FROM users WHERE id = ?", (leader_id,))
                 if leader:
                     owner = leader["name"]
         
         if owner is not None:
             update_fields["owner"] = owner
             
-        if process_data.priority is not None:
-            update_fields["priority"] = process_data.priority
-        if process_data.departmentId is not None:
-            update_fields["departmentId"] = process_data.departmentId
+        priority = getattr(process_data, "priority", None)
+        if priority is not None:
+            update_fields["priority"] = priority
+        department_id = getattr(process_data, "departmentId", None)
+        if department_id is not None:
+            update_fields["departmentId"] = department_id
         
         if not update_fields:
             return existing_process
