@@ -174,12 +174,18 @@ async def request_deactivation(
     try:
         await create_deactivation_request(current_user["id"], request_data.reason)
         return {"success": True, "message": "Solicitud de desactivación enviada correctamente"}
+    except ValueError as e:
+        logger.warning(f"Error de validación en request_deactivation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
     except Exception as e:
         logger.exception(f"Error en request_deactivation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Error al enviar la solicitud de desactivación. Verifica los datos e inténtalo de nuevo."
-        )
+        ) from e
 
 
 @router.post("/{user_id}/deactivate", response_model=dict)
