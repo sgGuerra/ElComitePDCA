@@ -79,4 +79,9 @@ ehthumbs.db
 .sonarlint/
 .abacusai/
 # TEST documentacion
-pasoapaso.md 
+pasoapaso.md
+
+# Docker
+*.tar
+docker-compose.override.yml
+

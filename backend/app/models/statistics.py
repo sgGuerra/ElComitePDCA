@@ -9,6 +9,28 @@ logger = logging.getLogger(__name__)
 
 PROCESS_ID_FILTER = " AND process_id = ?"
 
+def _get_date_filter_condition(date_range: str, filter_type: str = "history") -> str:
+    if filter_type == "history":
+        if date_range == "week":
+            return "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
+        elif date_range == "month":
+            return "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
+        elif date_range == "quarter":
+            return "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
+        elif date_range == "year":
+            return "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+    elif filter_type == "upcoming":
+        if date_range == "week":
+            return "AND target_date <= date('now', '+7 days')"
+        elif date_range == "month":
+            return "AND target_date <= date('now', '+1 month')"
+        elif date_range == "quarter":
+            return "AND target_date <= date('now', '+3 months')"
+        elif date_range == "year":
+            return "AND target_date <= date('now', '+1 year')"
+    return ""
+
+
 
 async def get_dashboard_statistics() -> Dict[str, Any]:
     """Get general dashboard statistics."""
@@ -99,16 +121,7 @@ async def get_actions_by_status(
         List of actions grouped by status
     """
     try:
-        # Add date filtering
-        date_filter = ""
-        if date_range == "week":
-            date_filter = "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
-        elif date_range == "month":
-            date_filter = "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
-        elif date_range == "quarter":
-            date_filter = "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
-        elif date_range == "year":
-            date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+        date_filter = _get_date_filter_condition(date_range, "history")
         
         # Add process filter
         query_params = []
@@ -185,16 +198,7 @@ async def get_upcoming_deadlines(
         List of actions with upcoming deadlines
     """
     try:
-        # Determine date range
-        date_filter = ""
-        if date_range == "week":
-            date_filter = "AND target_date <= date('now', '+7 days')"
-        elif date_range == "month":
-            date_filter = "AND target_date <= date('now', '+1 month')"
-        elif date_range == "quarter":
-            date_filter = "AND target_date <= date('now', '+3 months')"
-        elif date_range == "year":
-            date_filter = "AND target_date <= date('now', '+1 year')"
+        date_filter = _get_date_filter_condition(date_range, "upcoming")
         
         # Build query with proper parameterization
         query_params = [limit]  # Start with limit as a parameter
@@ -244,16 +248,7 @@ async def get_completion_rate(
         Completion rate as a percentage
     """
     try:
-        # Add date filtering
-        date_filter = ""
-        if date_range == "week":
-            date_filter = "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
-        elif date_range == "month":
-            date_filter = "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
-        elif date_range == "quarter":
-            date_filter = "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
-        elif date_range == "year":
-            date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+        date_filter = _get_date_filter_condition(date_range, "history")
         
         # Query with proper parameterization
         query_params = []

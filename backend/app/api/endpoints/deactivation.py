@@ -1,5 +1,8 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.auth import get_current_user
 from app.core.config import settings
@@ -36,9 +39,10 @@ async def request_account_deactivation(
         )
         return request
     except Exception as e:
+        logger.exception(f"Error en request_account_deactivation: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=str(e)
+            detail="Error al solicitar la desactivación de la cuenta. Inténtalo de nuevo."
         )
 
 
@@ -61,9 +65,10 @@ async def get_account_deactivation_requests(
         requests = await get_deactivation_requests(status=status)
         return requests
     except Exception as e:
+        logger.exception(f"Error en get_account_deactivation_requests: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=str(e)
+            detail="Error al obtener las solicitudes de desactivación."
         )
 
 
@@ -102,9 +107,10 @@ async def get_deactivation_request_details(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception(f"Error en get_deactivation_request_details: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=str(e)
+            detail="Error al obtener los detalles de la solicitud de desactivación."
         )
 
 
@@ -149,7 +155,8 @@ async def process_account_deactivation_request(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception(f"Error en process_account_deactivation_request: {str(e)}")
         raise HTTPException(
             status_code=400,
-            detail=str(e)
+            detail="Error al procesar la solicitud de desactivación."
         )

@@ -13,6 +13,174 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 
+const ActionModal = ({
+  actionForm, handleSubmit, handleInputChange, formErrors, userOptions, closeModal
+}) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full">
+      <div className="p-6">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          {actionForm.id ? 'Editar Acción' : 'Nueva Acción'}
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Nombre *</label>
+            <input
+              type="text"
+              name="name"
+              value={actionForm.name}
+              onChange={handleInputChange}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
+                formErrors.name ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Nombre de la acción"
+            />
+            {formErrors.name && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Responsable</label>
+              <select
+                name="leader_id"
+                value={actionForm.leader_id}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              >
+                <option value="">Seleccionar responsable</option>
+                {userOptions.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Estado</label>
+              <select
+                name="status"
+                value={actionForm.status}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              >
+                <option value="pending">Pendiente</option>
+                <option value="in_progress">En progreso</option>
+                <option value="completed">Completada</option>
+                <option value="canceled">Cancelada</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Prioridad</label>
+              <select
+                name="priority"
+                value={actionForm.priority}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              >
+                <option value="low">Baja</option>
+                <option value="medium">Media</option>
+                <option value="high">Alta</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Fecha objetivo</label>
+            <input
+              type="date"
+              name="target_date"
+              value={actionForm.target_date}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">¿Qué? *</label>
+            <textarea
+              name="what"
+              value={actionForm.what}
+              onChange={handleInputChange}
+              rows="3"
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
+                formErrors.what ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Descripción de la acción"
+            />
+            {formErrors.what && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.what}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">¿Por qué?</label>
+            <textarea
+              name="why"
+              value={actionForm.why}
+              onChange={handleInputChange}
+              rows="3"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              placeholder="Justificación de la acción"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">¿Cómo?</label>
+            <textarea
+              name="how"
+              value={actionForm.how}
+              onChange={handleInputChange}
+              rows="3"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              placeholder="Método de implementación"
+            />
+          </div>
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+            >
+              {actionForm.id ? 'Actualizar Acción' : 'Crear Acción'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+);
+
+const DeleteModal = ({ confirmDelete, cancelDelete, handleDelete }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+      <div className="flex items-center justify-center text-red-500 mb-4">
+        <FaExclamationTriangle className="text-4xl" />
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
+        Confirmar Eliminación
+      </h3>
+      <p className="text-gray-600 text-center mb-6">
+        ¿Está seguro que desea eliminar la acción "{confirmDelete.name}"? Esta acción no se puede deshacer.
+      </p>
+      <div className="flex justify-center space-x-3">
+        <button
+          onClick={cancelDelete}
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleDelete}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const ActionsList = () => {
   const { processId } = useParams();
   const [actions, setActions] = useState([]);
@@ -632,179 +800,23 @@ const ActionsList = () => {
       
       {/* Create/Edit Action Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full">
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                {actionForm.id ? 'Editar Acción' : 'Nueva Acción'}
-              </h3>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nombre *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={actionForm.name}
-                    onChange={handleInputChange}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
-                      formErrors.name ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Nombre de la acción"
-                  />
-                  {formErrors.name && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Responsable</label>
-                    <select
-                      name="leader_id"
-                      value={actionForm.leader_id}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                    >
-                      <option value="">Seleccionar responsable</option>
-                      {userOptions.map(user => (
-                        <option key={user.id} value={user.id}>{user.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Estado</label>
-                    <select
-                      name="status"
-                      value={actionForm.status}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                    >
-                      <option value="pending">Pendiente</option>
-                      <option value="in_progress">En progreso</option>
-                      <option value="completed">Completada</option>
-                      <option value="canceled">Cancelada</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Prioridad</label>
-                    <select
-                      name="priority"
-                      value={actionForm.priority}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                    >
-                      <option value="low">Baja</option>
-                      <option value="medium">Media</option>
-                      <option value="high">Alta</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Fecha objetivo</label>
-                  <input
-                    type="date"
-                    name="target_date"
-                    value={actionForm.target_date}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Qué? *</label>
-                  <textarea
-                    name="what"
-                    value={actionForm.what}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-primary focus:ring-primary ${
-                      formErrors.what ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Descripción de la acción"
-                  />
-                  {formErrors.what && (
-                    <p className="mt-1 text-sm text-red-600">{formErrors.what}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Por qué?</label>
-                  <textarea
-                    name="why"
-                    value={actionForm.why}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                    placeholder="Justificación de la acción"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">¿Cómo?</label>
-                  <textarea
-                    name="how"
-                    value={actionForm.how}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                    placeholder="Método de implementación"
-                  />
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-                  >
-                    {actionForm.id ? 'Actualizar Acción' : 'Crear Acción'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <ActionModal 
+          actionForm={actionForm} 
+          handleSubmit={handleSubmit} 
+          handleInputChange={handleInputChange} 
+          formErrors={formErrors} 
+          userOptions={userOptions} 
+          closeModal={closeModal} 
+        />
       )}
       
       {/* Delete Confirmation Modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-center text-red-500 mb-4">
-              <FaExclamationTriangle className="text-4xl" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
-              Confirmar Eliminación
-            </h3>
-            <p className="text-gray-600 text-center mb-6">
-              ¿Está seguro que desea eliminar la acción "{confirmDelete.name}"? Esta acción no se puede deshacer.
-            </p>
-            <div className="flex justify-center space-x-3">
-              <button
-                onClick={cancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteModal 
+          confirmDelete={confirmDelete} 
+          cancelDelete={cancelDelete} 
+          handleDelete={handleDelete} 
+        />
       )}
     </div>
   );
