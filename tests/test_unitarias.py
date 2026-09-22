@@ -30,7 +30,7 @@ from app.api.endpoints.notifications import (
 from app.api.endpoints.processes import (
     delete_process_by_id,
     get_process_assigned_leaders,
-    get_process_detailed_statistics,
+    get_process_detailed_statistics,  
     read_process,
     read_processes,
     update_process_info,
