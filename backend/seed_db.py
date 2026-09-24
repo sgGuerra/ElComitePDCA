@@ -5,7 +5,12 @@ from datetime import datetime, timedelta
 import random
 
 def seed_database():
-    db_path = os.path.join(os.path.dirname(__file__), "..", "database.sqlite")
+    # Use DATABASE_URL if available (for docker), otherwise fallback to local path
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url and db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "")
+    else:
+        db_path = os.path.join(os.path.dirname(__file__), "..", "database.sqlite")
     db_path = os.path.abspath(db_path)
     
     print(f"Using database at: {db_path}")
@@ -41,6 +46,14 @@ def seed_database():
         # Get the first admin user
         cursor.execute("SELECT id FROM users LIMIT 1")
         admin_id = cursor.fetchone()[0]
+
+        # Check if already seeded
+        cursor.execute("SELECT COUNT(*) FROM processes WHERE name LIKE 'Process %'")
+        process_count = cursor.fetchone()[0]
+        if process_count > 0:
+            print("Database already seeded. Skipping.")
+            conn.commit()
+            return
 
         # Seed processes
         print("Seeding processes...")
