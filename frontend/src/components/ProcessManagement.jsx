@@ -213,9 +213,7 @@ const ProcessManagement = () => {
     const errors = {};
     if (!processForm.name.trim()) {
       errors.name = 'El nombre del proceso es obligatorio';
-    }
-    
-    if (processForm.name.trim().length < 3) {
+    } else if (processForm.name.trim().length < 3) {
       errors.name = 'El nombre debe tener al menos 3 caracteres';
     }
     
@@ -562,8 +560,8 @@ const ProcessManagement = () => {
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Nombre *</label>
-                  <input
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre *</label>
+        <input id="name"
                     type="text"
                     name="name"
                     value={processForm.name}
@@ -579,8 +577,8 @@ const ProcessManagement = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                  <textarea
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descripción</label>
+        <textarea id="description"
                     name="description"
                     value={processForm.description}
                     onChange={handleInputChange}
@@ -637,8 +635,8 @@ const ProcessManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Departamento</label>
-                    <select
+                    <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700">Departamento</label>
+        <select id="departmentId"
                       name="departmentId"
                       value={processForm.departmentId}
                       onChange={handleInputChange}
@@ -656,8 +654,8 @@ const ProcessManagement = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Estado</label>
-                    <select
+                    <label htmlFor="status" className="block text-sm font-medium text-gray-700">Estado</label>
+        <select id="status"
                       name="status"
                       value={processForm.status}
                       onChange={handleInputChange}
@@ -671,8 +669,8 @@ const ProcessManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Prioridad</label>
-                    <select
+                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700">Prioridad</label>
+        <select id="priority"
                       name="priority"
                       value={processForm.priority}
                       onChange={handleInputChange}

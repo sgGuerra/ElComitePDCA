@@ -156,10 +156,10 @@ const AuditLogTracker = () => {
         <form onSubmit={handleApplyFilters} className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="entity_type" className="block text-sm font-medium text-gray-700 mb-1">
                 Tipo de Entidad
               </label>
-              <select
+        <select id="entity_type"
                 name="entity_type"
                 value={filters.entity_type}
                 onChange={handleFilterChange}
@@ -175,10 +175,10 @@ const AuditLogTracker = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="entity_id" className="block text-sm font-medium text-gray-700 mb-1">
                 ID de Entidad
               </label>
-              <input
+        <input id="entity_id"
                 type="number"
                 name="entity_id"
                 value={filters.entity_id}
@@ -189,10 +189,10 @@ const AuditLogTracker = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="user_id" className="block text-sm font-medium text-gray-700 mb-1">
                 ID de Usuario
               </label>
-              <input
+        <input id="user_id"
                 type="number"
                 name="user_id"
                 value={filters.user_id}
