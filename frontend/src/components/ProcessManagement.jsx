@@ -256,13 +256,18 @@ const ProcessManagement = () => {
         
         // Resaltar el proceso actualizado
         setTimeout(() => {
-          const processElement = document.getElementById(`process-${selectedProcess.id}`);
-          if (processElement) {
-            processElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            processElement.classList.add('animate-highlight');
-            setTimeout(() => {
-              processElement.classList.remove('animate-highlight');
-            }, 3000);
+          if (typeof document !== 'undefined') {
+            const processElement = document.getElementById(`process-${selectedProcess.id}`);
+            if (processElement) {
+              processElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              processElement.classList.add('animate-highlight');
+              setTimeout(() => {
+                if (typeof document !== 'undefined') {
+                  const el = document.getElementById(`process-${selectedProcess.id}`);
+                  if (el) el.classList.remove('animate-highlight');
+                }
+              }, 3000);
+            }
           }
         }, 500);
       } else {
@@ -306,13 +311,18 @@ const ProcessManagement = () => {
         
         // Notificar al usuario con un aviso más visible
         setTimeout(() => {
-          const newProcessElement = document.getElementById(`process-${newProcess.id}`);
-          if (newProcessElement) {
-            newProcessElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            newProcessElement.classList.add('animate-highlight');
-            setTimeout(() => {
-              newProcessElement.classList.remove('animate-highlight');
-            }, 3000);
+          if (typeof document !== 'undefined') {
+            const newProcessElement = document.getElementById(`process-${newProcess.id}`);
+            if (newProcessElement) {
+              newProcessElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              newProcessElement.classList.add('animate-highlight');
+              setTimeout(() => {
+                if (typeof document !== 'undefined') {
+                  const el = document.getElementById(`process-${newProcess.id}`);
+                  if (el) el.classList.remove('animate-highlight');
+                }
+              }, 3000);
+            }
           }
         }, 500);
       }
