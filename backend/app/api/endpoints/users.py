@@ -20,6 +20,8 @@ from app.models.deactivation import create_deactivation_request
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+USER_NOT_FOUND = "Usuario no encontrado"
+
 
 @router.get("/", response_model=List[User])
 async def read_users(
@@ -48,6 +50,7 @@ async def create_new_user(
         user = await create_user(user_in)
         return user
     except ValueError as e:
+        logger.exception(f"Error de validación al crear usuario: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
@@ -76,55 +79,25 @@ async def get_process_leaders_list(
     This is used for selecting process owners in process management.
     """
     try:
-        # Get users with process_leader role or admin role
         leaders = await get_users_by_role(settings.ROLE_PROCESS_LEADER)
         admins = await get_users_by_role(settings.ROLE_ADMIN)
         
-        logger.info(f"Process leaders found: {len(leaders)}")
-        logger.info(f"Admins found: {len(admins)}")
+        combined_users = {}
+        for user, default_role in [(u, settings.ROLE_PROCESS_LEADER) for u in leaders] + [(u, settings.ROLE_ADMIN) for u in admins]:
+            if user["id"] not in combined_users:
+                user["role"] = user.get("role", default_role)
+                user["created_at"] = user.get("created_at", datetime.now(timezone.utc))
+                user["updated_at"] = user.get("updated_at", datetime.now(timezone.utc))
+                combined_users[user["id"]] = user
         
-        # Combine and remove duplicates
-        seen_ids = set()
-        all_leaders = []
-        
-        for leader in leaders:
-            if leader["id"] not in seen_ids:
-                seen_ids.add(leader["id"])
-                # Ensure every field required by the User model is present
-                if "role" not in leader:
-                    leader["role"] = settings.ROLE_PROCESS_LEADER
-                # Ensure created_at and updated_at fields exist
-                if "created_at" not in leader:
-                    leader["created_at"] = datetime.now(timezone.utc)
-                if "updated_at" not in leader:
-                    leader["updated_at"] = datetime.now(timezone.utc)
-                all_leaders.append(leader)
-        
-        for admin in admins:
-            if admin["id"] not in seen_ids:
-                seen_ids.add(admin["id"])
-                # Ensure every field required by the User model is present
-                if "role" not in admin:
-                    admin["role"] = settings.ROLE_ADMIN
-                # Ensure created_at and updated_at fields exist
-                if "created_at" not in admin:
-                    admin["created_at"] = datetime.now()
-                if "updated_at" not in admin:
-                    admin["updated_at"] = datetime.now()
-                all_leaders.append(admin)
-        
-        # Filter out inactive users
-        active_leaders = [leader for leader in all_leaders if leader.get("is_active", True)]
-        
-        logger.info(f"Total active leaders: {len(active_leaders)}")
-        
+        active_leaders = [user for user in combined_users.values() if user.get("is_active", True)]
         return active_leaders
     
     except Exception as e:
-        logger.error(f"Error getting process leaders: {str(e)}", exc_info=True)
+        logger.exception(f"Error getting process leaders: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener líderes de procesos: {str(e)}"
+            detail="Error al obtener líderes de procesos. Inténtalo de nuevo."
         )
 
 
@@ -148,7 +121,7 @@ async def read_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail=USER_NOT_FOUND
         )
     
     return user
@@ -183,7 +156,7 @@ async def update_user_info(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail=USER_NOT_FOUND
         )
     
     return user
@@ -201,11 +174,18 @@ async def request_deactivation(
     try:
         await create_deactivation_request(current_user["id"], request_data.reason)
         return {"success": True, "message": "Solicitud de desactivación enviada correctamente"}
-    except Exception as e:
+    except ValueError as e:
+        logger.warning(f"Error de validación en request_deactivation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        logger.exception(f"Error en request_deactivation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error al enviar la solicitud de desactivación. Verifica los datos e inténtalo de nuevo."
+        ) from e
 
 
 @router.post("/{user_id}/deactivate", response_model=dict)
@@ -232,7 +212,7 @@ async def deactivate_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail=USER_NOT_FOUND
         )
     
     return {"success": True, "message": "Usuario desactivado correctamente"}

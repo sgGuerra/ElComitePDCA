@@ -1,6 +1,6 @@
 // src/components/ConfigurationManagement.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaSave, FaCog, FaBell, FaEnvelope, FaUser, FaShieldAlt, FaServer } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 import LoadingOverlay from './LoadingOverlay';
@@ -91,24 +91,11 @@ const ConfigurationManagement = () => {
     }
   };
   
-  // Get the current active configuration object based on the active tab
-  const getActiveConfig = () => {
-    switch (activeTab) {
-      case 'general': return generalConfig;
-      case 'notifications': return notificationConfig;
-      case 'email': return emailConfig;
-      case 'users': return userConfig;
-      case 'security': return securityConfig;
-      case 'system': return systemConfig;
-      default: return generalConfig;
-    }
-  };
-  
   // Handle input change for the current active configuration
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const inputValue = type === 'checkbox' ? checked : 
-                      type === 'number' ? parseInt(value, 10) : value;
+                      type === 'number' ? Number.parseInt(value, 10) : value;
     
     setChanges(true);
     

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaFilter, FaDownload, FaEye, FaCalendarAlt, FaUserTag } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
+import { FaSearch, FaFilter, FaDownload, FaEye, FaCalendarAlt } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
 import auditService from '../services/auditService';
 import LoadingOverlay from './LoadingOverlay';
@@ -20,7 +19,6 @@ const AuditLogTracker = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [exportFormat, setExportFormat] = useState('pdf');
   
-  const { user } = useAuth();
   const { success, error: showError } = useToast();
   
   useEffect(() => {
@@ -354,7 +352,7 @@ const AuditLogTracker = () => {
               </svg>
             </button>
             
-            {[...Array(totalPages)].map((_, i) => (
+            {[...new Array(totalPages)].map((_, i) => (
               <button
                 key={i}
                 onClick={() => setPage(i + 1)}

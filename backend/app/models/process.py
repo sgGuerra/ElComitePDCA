@@ -29,7 +29,7 @@ async def create_process(process_data: ProcessCreate, user_id: int) -> Dict[str,
         process = await get_one("SELECT * FROM processes WHERE id = ?", (process_id,))
         return process
     except Exception as e:
-        logger.error(f"Error creating process: {str(e)}")
+        logger.exception(f"Error creating process: {str(e)}")
         raise
 
 
@@ -39,17 +39,18 @@ async def get_process_by_id(process_id: int) -> Optional[Dict[str, Any]]:
         process = await get_one("SELECT * FROM processes WHERE id = ?", (process_id,))
         return process
     except Exception as e:
-        logger.error(f"Error getting process by ID: {str(e)}")
+        logger.exception(f"Error getting process by ID: {str(e)}")
         return None
 
 
-async def get_all_processes(user_id: Optional[int] = None, include_stats: bool = False) -> List[Dict[str, Any]]:
+async def get_all_processes(user_id: Optional[int] = None, include_stats: bool = False, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Get all processes, optionally filtered by user ID.
+    Get all processes, optionally filtered by user ID or status.
     
     Args:
         user_id: If provided, only return processes created by this user
         include_stats: If True, include action statistics for each process
+        status_filter: If provided, only return processes with this status
         
     Returns:
         List of processes
@@ -57,10 +58,18 @@ async def get_all_processes(user_id: Optional[int] = None, include_stats: bool =
     try:
         query = "SELECT * FROM processes"
         params = []
+        where_clauses = []
         
         if user_id:
-            query += " WHERE created_by = ?"
+            where_clauses.append("created_by = ?")
             params.append(user_id)
+            
+        if status_filter:
+            where_clauses.append("status = ?")
+            params.append(status_filter)
+            
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
         
         query += " ORDER BY created_at DESC"
         
@@ -74,7 +83,7 @@ async def get_all_processes(user_id: Optional[int] = None, include_stats: bool =
         
         return processes
     except Exception as e:
-        logger.error(f"Error getting all processes: {str(e)}")
+        logger.exception(f"Error getting all processes: {str(e)}")
         return []
 
 
@@ -128,7 +137,7 @@ async def update_process(process_id: int, process_data: ProcessUpdate) -> Option
         # Return updated process
         return await get_process_by_id(process_id)
     except Exception as e:
-        logger.error(f"Error updating process: {str(e)}")
+        logger.exception(f"Error updating process: {str(e)}")
         return None
 
 
@@ -144,7 +153,7 @@ async def delete_process(process_id: int) -> bool:
         await execute("DELETE FROM processes WHERE id = ?", (process_id,))
         return True
     except Exception as e:
-        logger.error(f"Error deleting process: {str(e)}")
+        logger.exception(f"Error deleting process: {str(e)}")
         return False
 
 
@@ -182,7 +191,7 @@ async def get_process_statistics(process_id: int) -> Dict[str, int]:
             "overdue_actions": overdue_actions["count"] if overdue_actions else 0
         }
     except Exception as e:
-        logger.error(f"Error getting process statistics: {str(e)}")
+        logger.exception(f"Error getting process statistics: {str(e)}")
         return {
             "total_actions": 0,
             "completed_actions": 0,
@@ -204,5 +213,5 @@ async def get_processes_by_leader(leader_id: int) -> List[Dict[str, Any]]:
         processes = await get_all(query, (leader_id,))
         return processes
     except Exception as e:
-        logger.error(f"Error getting processes by leader: {str(e)}")
+        logger.exception(f"Error getting processes by leader: {str(e)}")
         return []

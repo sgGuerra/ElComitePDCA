@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from datetime import date, datetime
 
@@ -50,12 +50,12 @@ class ProcessStatsResponse(BaseModel):
 
 class StatisticsResponse(BaseModel):
     success: bool = True
-    data: Union[
-        List[ProcessStatsResponse],
-        List[ActionsByType],
-        List[ActionsByStatus],
-        List[ActionsOverTime],
-        UpcomingDeadlines,
-        CompletionRate,
-        DashboardStatistics
-    ]
+    data: (
+        List[ProcessStatsResponse]
+        | List[ActionsByType]
+        | List[ActionsByStatus]
+        | List[ActionsOverTime]
+        | UpcomingDeadlines
+        | CompletionRate
+        | DashboardStatistics
+    )

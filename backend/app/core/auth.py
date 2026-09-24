@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
 from jose import jwt
 from fastapi import Depends, HTTPException, status
@@ -13,7 +13,7 @@ from app.models.user import get_user_by_id
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
-def create_access_token(subject: Union[str, int], extra_data: Dict[str, Any] = None) -> str:
+def create_access_token(subject: str | int, extra_data: Dict[str, Any] = None) -> str:
     """
     Create JWT access token
     
@@ -27,7 +27,7 @@ def create_access_token(subject: Union[str, int], extra_data: Dict[str, Any] = N
     to_encode = {}
     
     # Set token expiration
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "sub": str(subject)})
     
     # Add extra data if provided
@@ -59,7 +59,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         token_data = TokenPayload(**payload)
         
-        if datetime.fromtimestamp(token_data.exp) < datetime.utcnow():
+        if datetime.fromtimestamp(token_data.exp, tz=timezone.utc) < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token expired",
@@ -120,7 +120,7 @@ def verify_role(required_roles: List[str]):
     Returns:
         Dependency function
     """
-    async def verify_user_role(current_user: dict = Depends(get_current_user)):
+    def verify_user_role(current_user: dict = Depends(get_current_user)):
         # First check that user has the role in their assigned roles
         has_required_role = False
         for role in required_roles:

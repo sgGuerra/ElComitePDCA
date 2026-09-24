@@ -46,11 +46,11 @@ const AdminPanel = () => {
       
       // Calculate active actions (assuming those with status "in_progress", "pending", etc.)
       let activeActions = 0;
-      if (actionStats && actionStats.data) {
+      if (actionStats?.data) {
         // Sum up actions that are not completed or cancelled
-        const activeStatuses = ['in_progress', 'pending', 'assigned', 'open'];
+        const activeStatuses = new Set(['in_progress', 'pending', 'assigned', 'open']);
         activeActions = Object.entries(actionStats.data)
-          .filter(([status]) => activeStatuses.includes(status))
+          .filter(([status]) => activeStatuses.has(status))
           .reduce((sum, [_, count]) => sum + (count || 0), 0);
       }
       

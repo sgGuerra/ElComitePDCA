@@ -17,6 +17,20 @@ from app.models.audit import (
 
 router = APIRouter()
 
+AUDIT_REPORT_NOT_FOUND = "Informe de auditoría no encontrado"
+
+def _check_report_permissions(report: dict, current_user: dict, action_desc: str = "ver este informe") -> None:
+    is_admin = settings.ROLE_ADMIN in current_user.get("roles", [])
+    is_report_author = report.get("auditor_id") == current_user.get("id")
+    is_auditor = settings.ROLE_AUDITOR in current_user.get("roles", [])
+
+    if not (is_admin or (is_auditor and is_report_author)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail=f"No tienes permisos para {action_desc}"
+        )
+
+
 @router.post("/processes/{process_id}/request-audit", response_model=Process)
 async def request_process_audit(
     process_id: int,
@@ -97,13 +111,9 @@ async def get_single_audit_report(
     """
     report = await get_audit_report_by_id(report_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
 
-    is_admin = settings.ROLE_ADMIN in current_user["roles"]
-    is_report_author = report["auditor_id"] == current_user["id"]
-
-    if not (is_admin or (settings.ROLE_AUDITOR in current_user["roles"] and is_report_author)):
-        raise HTTPException(status_code=403, detail="No tienes permisos para ver este informe")
+    _check_report_permissions(report, current_user, "ver este informe")
     
     return report
 
@@ -118,7 +128,7 @@ async def update_existing_audit_report(
     """
     existing_report = await get_audit_report_by_id(report_id)
     if not existing_report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
     
     if existing_report["auditor_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para actualizar este informe")
@@ -141,13 +151,9 @@ async def delete_existing_audit_report(
     """Deletes an audit report. Only admin or the authoring auditor can delete."""
     report = await get_audit_report_by_id(report_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
 
-    is_admin = settings.ROLE_ADMIN in current_user["roles"]
-    is_report_author = report["auditor_id"] == current_user["id"]
-
-    if not (is_admin or (settings.ROLE_AUDITOR in current_user["roles"] and is_report_author)):
-        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este informe")
+    _check_report_permissions(report, current_user, "eliminar este informe")
 
     # TODO: Consider deleting the associated file if file_path exists and is managed by the app
     # from app.middleware.upload import delete_file
@@ -155,7 +161,6 @@ async def delete_existing_audit_report(
     #     delete_file(report["file_path"])
 
     await delete_audit_report(report_id)
-    return
 
 # Placeholder for PDF download - actual PDF generation/serving is more complex
 @router.get("/reports/{report_id}/download")
@@ -166,13 +171,9 @@ async def download_audit_report_pdf(
     """Allows download of the audit report PDF if available."""
     report = await get_audit_report_by_id(report_id)
     if not report:
-        raise HTTPException(status_code=404, detail="Informe de auditoría no encontrado")
+        raise HTTPException(status_code=404, detail=AUDIT_REPORT_NOT_FOUND)
 
-    is_admin = settings.ROLE_ADMIN in current_user["roles"]
-    is_report_author = report["auditor_id"] == current_user["id"]
-
-    if not (is_admin or (settings.ROLE_AUDITOR in current_user["roles"] and is_report_author)):
-        raise HTTPException(status_code=403, detail="No tienes permisos para descargar este informe")
+    _check_report_permissions(report, current_user, "descargar este informe")
 
     if not report.get("file_path"):
         raise HTTPException(status_code=404, detail="No hay archivo PDF disponible para este informe")
