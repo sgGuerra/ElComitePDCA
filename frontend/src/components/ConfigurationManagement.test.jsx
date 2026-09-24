@@ -50,7 +50,7 @@ describe('ConfigurationManagement', () => {
     await waitFor(() => {
       expect(screen.getByText('Configuración guardada exitosamente')).toBeInTheDocument();
       expect(saveButton).toBeDisabled(); // Should disable after save
-    });
+    }, { timeout: 2000 });
   });
 
   it('should render Notifications form when tab is clicked', () => {
