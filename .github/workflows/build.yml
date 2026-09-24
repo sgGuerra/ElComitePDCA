@@ -56,6 +56,7 @@ jobs:
           args: >
             -Dsonar.organization=sgguerra
             -Dsonar.projectKey=Sistema-de-mejoramiento-Continuo-ELComite
+            -Dsonar.host.url=https://sonarcloud.io
       # If you wish to fail your job when the Quality Gate is red, uncomment the
       # following lines. This would typically be used to fail a deployment.
       # - uses: SonarSource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0

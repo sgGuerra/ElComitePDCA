@@ -137,8 +137,8 @@ const ConfigurationManagement = () => {
   const renderGeneralForm = () => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Nombre del Sitio</label>
-        <input
+        <label htmlFor="siteName" className="block text-sm font-medium text-gray-700">Nombre del Sitio</label>
+        <input id="siteName"
           type="text"
           name="siteName"
           value={generalConfig.siteName}
@@ -148,8 +148,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Descripción del Sitio</label>
-        <input
+        <label htmlFor="siteDescription" className="block text-sm font-medium text-gray-700">Descripción del Sitio</label>
+        <input id="siteDescription"
           type="text"
           name="siteDescription"
           value={generalConfig.siteDescription}
@@ -160,8 +160,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Idioma Predeterminado</label>
-          <select
+          <label htmlFor="defaultLanguage" className="block text-sm font-medium text-gray-700">Idioma Predeterminado</label>
+        <select id="defaultLanguage"
             name="defaultLanguage"
             value={generalConfig.defaultLanguage}
             onChange={handleInputChange}
@@ -174,8 +174,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">Elementos por Página</label>
-          <input
+          <label htmlFor="itemsPerPage" className="block text-sm font-medium text-gray-700">Elementos por Página</label>
+        <input id="itemsPerPage"
             type="number"
             name="itemsPerPage"
             value={generalConfig.itemsPerPage}
@@ -188,8 +188,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Zona Horaria</label>
-        <select
+        <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">Zona Horaria</label>
+        <select id="timezone"
           name="timezone"
           value={generalConfig.timezone}
           onChange={handleInputChange}
@@ -318,8 +318,8 @@ const ConfigurationManagement = () => {
   const renderEmailForm = () => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Servidor SMTP</label>
-        <input
+        <label htmlFor="smtpServer" className="block text-sm font-medium text-gray-700">Servidor SMTP</label>
+        <input id="smtpServer"
           type="text"
           name="smtpServer"
           value={emailConfig.smtpServer}
@@ -331,8 +331,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Puerto SMTP</label>
-          <input
+          <label htmlFor="smtpPort" className="block text-sm font-medium text-gray-700">Puerto SMTP</label>
+        <input id="smtpPort"
             type="number"
             name="smtpPort"
             value={emailConfig.smtpPort}
@@ -358,8 +358,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Usuario SMTP</label>
-          <input
+          <label htmlFor="smtpUsername" className="block text-sm font-medium text-gray-700">Usuario SMTP</label>
+        <input id="smtpUsername"
             type="text"
             name="smtpUsername"
             value={emailConfig.smtpUsername}
@@ -370,8 +370,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">Contraseña SMTP</label>
-          <input
+          <label htmlFor="smtpPassword" className="block text-sm font-medium text-gray-700">Contraseña SMTP</label>
+        <input id="smtpPassword"
             type="password"
             name="smtpPassword"
             value={emailConfig.smtpPassword}
@@ -383,8 +383,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Correo del Remitente</label>
-        <input
+        <label htmlFor="emailSender" className="block text-sm font-medium text-gray-700">Correo del Remitente</label>
+        <input id="emailSender"
           type="email"
           name="emailSender"
           value={emailConfig.emailSender}
@@ -394,8 +394,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Pie de página del correo</label>
-        <textarea
+        <label htmlFor="emailFooter" className="block text-sm font-medium text-gray-700">Pie de página del correo</label>
+        <textarea id="emailFooter"
           name="emailFooter"
           value={emailConfig.emailFooter}
           onChange={handleInputChange}
@@ -439,8 +439,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Longitud mínima de contraseña</label>
-          <input
+          <label htmlFor="passwordMinLength" className="block text-sm font-medium text-gray-700">Longitud mínima de contraseña</label>
+        <input id="passwordMinLength"
             type="number"
             name="passwordMinLength"
             value={userConfig.passwordMinLength}
@@ -452,8 +452,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">Tiempo de sesión (minutos)</label>
-          <input
+          <label htmlFor="sessionTimeout" className="block text-sm font-medium text-gray-700">Tiempo de sesión (minutos)</label>
+        <input id="sessionTimeout"
             type="number"
             name="sessionTimeout"
             value={userConfig.sessionTimeout}
@@ -495,8 +495,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Máximo de intentos de inicio de sesión</label>
-        <input
+        <label htmlFor="maxLoginAttempts" className="block text-sm font-medium text-gray-700">Máximo de intentos de inicio de sesión</label>
+        <input id="maxLoginAttempts"
           type="number"
           name="maxLoginAttempts"
           value={userConfig.maxLoginAttempts}
@@ -527,8 +527,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Direcciones IP permitidas</label>
-        <textarea
+        <label htmlFor="allowedIpAddresses" className="block text-sm font-medium text-gray-700">Direcciones IP permitidas</label>
+        <textarea id="allowedIpAddresses"
           name="allowedIpAddresses"
           value={securityConfig.allowedIpAddresses}
           onChange={handleInputChange}
@@ -542,8 +542,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Orígenes CORS permitidos</label>
-        <input
+        <label htmlFor="corsOrigins" className="block text-sm font-medium text-gray-700">Orígenes CORS permitidos</label>
+        <input id="corsOrigins"
           type="text"
           name="corsOrigins"
           value={securityConfig.corsOrigins}
@@ -569,8 +569,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Solicitudes máximas</label>
-          <input
+          <label htmlFor="apiRateLimitRequests" className="block text-sm font-medium text-gray-700">Solicitudes máximas</label>
+        <input id="apiRateLimitRequests"
             type="number"
             name="apiRateLimitRequests"
             value={securityConfig.apiRateLimitRequests}
@@ -581,8 +581,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">Periodo de tiempo (minutos)</label>
-          <input
+          <label htmlFor="apiRateLimitTime" className="block text-sm font-medium text-gray-700">Periodo de tiempo (minutos)</label>
+        <input id="apiRateLimitTime"
             type="number"
             name="apiRateLimitTime"
             value={securityConfig.apiRateLimitTime}
@@ -613,8 +613,8 @@ const ConfigurationManagement = () => {
       </div>
       
       <div>
-        <label className="block text-sm font-medium text-gray-700">Nivel de registro</label>
-        <select
+        <label htmlFor="logLevel" className="block text-sm font-medium text-gray-700">Nivel de registro</label>
+        <select id="logLevel"
           name="logLevel"
           value={systemConfig.logLevel}
           onChange={handleInputChange}
@@ -658,8 +658,8 @@ const ConfigurationManagement = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Frecuencia de copia de seguridad</label>
-          <select
+          <label htmlFor="backupFrequency" className="block text-sm font-medium text-gray-700">Frecuencia de copia de seguridad</label>
+        <select id="backupFrequency"
             name="backupFrequency"
             value={systemConfig.backupFrequency}
             onChange={handleInputChange}
@@ -673,8 +673,8 @@ const ConfigurationManagement = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700">Días de retención de copias</label>
-          <input
+          <label htmlFor="backupRetentionDays" className="block text-sm font-medium text-gray-700">Días de retención de copias</label>
+        <input id="backupRetentionDays"
             type="number"
             name="backupRetentionDays"
             value={systemConfig.backupRetentionDays}

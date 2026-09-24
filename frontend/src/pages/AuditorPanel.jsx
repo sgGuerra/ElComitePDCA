@@ -216,10 +216,10 @@ const AuditorPanel = () => {
                   <form onSubmit={handleCreateReport}>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                           Título del Informe
                         </label>
-                        <input
+        <input id="title"
                           type="text"
                           name="title"
                           value={newReportForm.title}
@@ -230,10 +230,10 @@ const AuditorPanel = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="process_id" className="block text-sm font-medium text-gray-700 mb-1">
                           Proceso
                         </label>
-                        <select
+        <select id="process_id"
                           name="process_id"
                           value={newReportForm.process_id}
                           onChange={handleFormChange}
@@ -250,10 +250,10 @@ const AuditorPanel = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="findings" className="block text-sm font-medium text-gray-700 mb-1">
                           Hallazgos
                         </label>
-                        <textarea
+        <textarea id="findings"
                           name="findings"
                           value={newReportForm.findings}
                           onChange={handleFormChange}
@@ -263,10 +263,10 @@ const AuditorPanel = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="recommendations" className="block text-sm font-medium text-gray-700 mb-1">
                           Recomendaciones
                         </label>
-                        <textarea
+        <textarea id="recommendations"
                           name="recommendations"
                           value={newReportForm.recommendations}
                           onChange={handleFormChange}

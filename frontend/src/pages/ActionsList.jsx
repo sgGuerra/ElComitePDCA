@@ -24,8 +24,8 @@ const ActionModal = ({
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Nombre *</label>
-            <input
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre *</label>
+        <input id="name"
               type="text"
               name="name"
               value={actionForm.name}
@@ -41,8 +41,8 @@ const ActionModal = ({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Responsable</label>
-              <select
+              <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700">Responsable</label>
+        <select id="leader_id"
                 name="leader_id"
                 value={actionForm.leader_id}
                 onChange={handleInputChange}
@@ -55,8 +55,8 @@ const ActionModal = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Estado</label>
-              <select
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700">Estado</label>
+        <select id="status"
                 name="status"
                 value={actionForm.status}
                 onChange={handleInputChange}
@@ -69,8 +69,8 @@ const ActionModal = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Prioridad</label>
-              <select
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700">Prioridad</label>
+        <select id="priority"
                 name="priority"
                 value={actionForm.priority}
                 onChange={handleInputChange}
@@ -83,8 +83,8 @@ const ActionModal = ({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Fecha objetivo</label>
-            <input
+            <label htmlFor="target_date" className="block text-sm font-medium text-gray-700">Fecha objetivo</label>
+        <input id="target_date"
               type="date"
               name="target_date"
               value={actionForm.target_date}
@@ -93,8 +93,8 @@ const ActionModal = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">¿Qué? *</label>
-            <textarea
+            <label htmlFor="what" className="block text-sm font-medium text-gray-700">¿Qué? *</label>
+        <textarea id="what"
               name="what"
               value={actionForm.what}
               onChange={handleInputChange}
@@ -109,8 +109,8 @@ const ActionModal = ({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">¿Por qué?</label>
-            <textarea
+            <label htmlFor="why" className="block text-sm font-medium text-gray-700">¿Por qué?</label>
+        <textarea id="why"
               name="why"
               value={actionForm.why}
               onChange={handleInputChange}
@@ -120,8 +120,8 @@ const ActionModal = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">¿Cómo?</label>
-            <textarea
+            <label htmlFor="how" className="block text-sm font-medium text-gray-700">¿Cómo?</label>
+        <textarea id="how"
               name="how"
               value={actionForm.how}
               onChange={handleInputChange}
@@ -291,6 +291,7 @@ const ActionsList = () => {
     if (action) {
       // Edit mode
       setActionForm({
+        id: action.id,
         name: action.name || '',
         leader_id: action.leader_id || '',
         status: action.status || 'pending',
