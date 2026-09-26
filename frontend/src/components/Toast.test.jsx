@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import ToastContainer from './Toast';
 
 // --- Helpers ---
@@ -16,6 +16,10 @@ const renderToasts = (toasts, removeToast = () => {}) =>
   render(<ToastContainer toasts={toasts} removeToast={removeToast} />);
 
 describe('ToastContainer', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should render nothing when toasts array is empty', () => {
     const { container } = renderToasts([]);
     expect(container.innerHTML).toBe('');
