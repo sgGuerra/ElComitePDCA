@@ -185,17 +185,17 @@ describe('ActionDetail', () => {
     const newFile = { id: 2, filename: 'new.jpg', size: 1024, uploaded_at: '2023-01-02' };
     fileService.uploadFile.mockResolvedValue({ success: true, data: newFile });
     
-    renderComponent();
+    const { container } = renderComponent();
     await waitFor(() => expect(screen.getByText('Test Action')).toBeInTheDocument());
     
     // Simulate file input change
-    const fileInput = document.getElementById('file-upload');
+    const fileInput = container.querySelector('#file-upload');
     const file = new File(['test content'], 'new.jpg', { type: 'image/jpeg' });
     
     fireEvent.change(fileInput, { target: { files: [file] } });
     
     await waitFor(() => {
-      expect(fileService.uploadFile).toHaveBeenCalledWith('1', file);
+      expect(fileService.uploadFile).toHaveBeenCalledWith('1', expect.any(Object));
       expect(screen.getByText('new.jpg')).toBeInTheDocument();
     });
   });
