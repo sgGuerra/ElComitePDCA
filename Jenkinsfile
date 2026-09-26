@@ -76,7 +76,7 @@ pipeline {
         // Analisis SonarQube (usa sonar-project.properties del repositorio)
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('Comite-SonarQube') {
+                withSonarQubeEnv('SonarQube') {
                     sh "${SONAR_SCANNER}/bin/sonar-scanner"
                 }
             }
