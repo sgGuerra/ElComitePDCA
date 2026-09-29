@@ -16,7 +16,12 @@ pipeline {
         stage('Install & Test Backend') {
             steps {
                 echo 'Running backend tests...'
-                sh 'cd backend && pip3 install -r requirements.txt --break-system-packages && pytest --cov=app --cov-report=xml:coverage.xml --junitxml=../backend-test-results.xml || true'
+                sh '''
+                    export PATH="/var/jenkins_home/.local/bin:$HOME/.local/bin:$PATH"
+                    cd backend
+                    pip3 install -r requirements.txt --break-system-packages
+                    python3 -m pytest --cov=app --cov-report=xml:coverage.xml --junitxml=../backend-test-results.xml
+                '''
             }
         }
 
