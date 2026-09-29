@@ -12,7 +12,7 @@ pipeline {
     }
 
     triggers {
-        pollSCM('H/5 * * * *')
+        
     }
 
     stages {
@@ -23,7 +23,7 @@ pipeline {
                 cleanWs()
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/test/dev']],
+                    branches: [[name: '*/main']],
                     userRemoteConfigs: scm.userRemoteConfigs
                 ])
                 echo "Codigo descargado - Branch: ${env.GIT_BRANCH}, Commit: ${env.GIT_COMMIT}"
@@ -123,25 +123,6 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    if docker compose version >/dev/null 2>&1; then
-                        COMPOSE_VARIANT='v2'
-                        docker compose version
-                    elif command -v docker-compose >/dev/null 2>&1; then
-                        COMPOSE_VARIANT='v1'
-                        docker-compose --version
-                    else
-                        echo 'Error: no se encontro Docker Compose V2 ni docker-compose.'
-                        exit 1
-                    fi
-
-                    compose() {
-                        if [ "$COMPOSE_VARIANT" = 'v2' ]; then
-                            docker compose "$@"
-                        else
-                            docker-compose "$@"
-                        fi
-                    }
-
                     compose --project-name "$COMPOSE_PROJECT" down --remove-orphans || true
                     compose --project-name "$COMPOSE_PROJECT" up -d
                     compose --project-name "$COMPOSE_PROJECT" ps
