@@ -117,11 +117,30 @@ pipeline {
         // Deploy con Docker Compose
         stage('Deploy') {
             steps {
-                sh """
-                    docker compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
-                    docker compose -p ${COMPOSE_PROJECT} up -d
-                    docker compose -p ${COMPOSE_PROJECT} ps
-                """
+                sh '''
+                    if docker compose version >/dev/null 2>&1; then
+                        COMPOSE_VARIANT='v2'
+                        docker compose version
+                    elif command -v docker-compose >/dev/null 2>&1; then
+                        COMPOSE_VARIANT='v1'
+                        docker-compose --version
+                    else
+                        echo 'Error: no se encontro Docker Compose V2 ni docker-compose.'
+                        exit 1
+                    fi
+
+                    compose() {
+                        if [ "$COMPOSE_VARIANT" = 'v2' ]; then
+                            docker compose "$@"
+                        else
+                            docker-compose "$@"
+                        fi
+                    }
+
+                    compose --project-name "$COMPOSE_PROJECT" down --remove-orphans || true
+                    compose --project-name "$COMPOSE_PROJECT" up -d
+                    compose --project-name "$COMPOSE_PROJECT" ps
+                '''
                 echo 'Aplicacion desplegada:'
                 echo '  Frontend: http://localhost:80'
                 echo '  Backend API: http://localhost:8000'
