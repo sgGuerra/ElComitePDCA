@@ -5,6 +5,7 @@ from datetime import datetime, date
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.action import ActionCreate, ActionUpdate
 from app.models.notification import create_notification
+from app.models.audit import create_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -17,17 +18,24 @@ async def create_action(action_data: ActionCreate, user_id: int) -> Dict[str, An
             """
             INSERT INTO actions (
                 process_id, leader_id, name, origin, start_date, target_date,
-                what, why, how, location, status, evidence, completion_percentage,
+                what, why, how, location, status, priority, evidence, completion_percentage,
                 created_by, related_type, related_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 action_data.process_id, action_data.leader_id, action_data.name,
                 action_data.origin, action_data.start_date, action_data.target_date,
                 action_data.what, action_data.why, action_data.how, action_data.where,
-                action_data.status, action_data.evidence, action_data.completion_percentage,
+                action_data.status, action_data.priority, action_data.evidence, action_data.completion_percentage,
                 user_id, action_data.related_type, action_data.related_id
             )
+        )
+
+        await create_audit_log(
+            "action",
+            action_id,
+            user_id,
+            {"operation": "created", "name": action_data.name},
         )
         
         # Notify the leader if it's not the same as the creator
@@ -120,7 +128,11 @@ async def get_actions_by_leader(leader_id: int) -> List[Dict[str, Any]]:
         return []
 
 
-async def update_action(action_id: int, action_data: ActionUpdate) -> Optional[Dict[str, Any]]:
+async def update_action(
+    action_id: int,
+    action_data: ActionUpdate,
+    changed_by: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
     """Update an action."""
     try:
         # Check if action exists
@@ -131,6 +143,7 @@ async def update_action(action_id: int, action_data: ActionUpdate) -> Optional[D
         # Prepare update fields
         update_fields = {}
         update_values = []
+        changes = {}
         
         # Status change detection for notifications
         old_status = existing_action["status"]
@@ -139,8 +152,11 @@ async def update_action(action_id: int, action_data: ActionUpdate) -> Optional[D
         # Handle all possible update fields
         for field, value in action_data.model_dump(exclude_unset=True).items():
             if value is not None:
+                old_value = existing_action.get(field)
                 update_fields[field] = value
                 update_values.append(value)
+                if value != old_value:
+                    changes[field] = {"old": old_value, "new": value}
                 
                 # Track status change
                 if field == "status" and value != old_status:
@@ -158,6 +174,14 @@ async def update_action(action_id: int, action_data: ActionUpdate) -> Optional[D
             f"UPDATE actions SET {set_clause} WHERE id = ?",
             (*update_values, action_id)
         )
+
+        if changed_by is not None and changes:
+            await create_audit_log(
+                "action",
+                action_id,
+                changed_by,
+                {"operation": "updated", "changes": changes},
+            )
         
         # Handle notifications for status changes
         if status_changed and "status" in update_fields:
@@ -177,7 +201,7 @@ async def update_action(action_id: int, action_data: ActionUpdate) -> Optional[D
         return None
 
 
-async def delete_action(action_id: int) -> bool:
+async def delete_action(action_id: int, deleted_by: Optional[int] = None) -> bool:
     """Delete an action."""
     try:
         # Check if action exists
@@ -187,6 +211,13 @@ async def delete_action(action_id: int) -> bool:
         
         # Delete action
         await execute("DELETE FROM actions WHERE id = ?", (action_id,))
+        if deleted_by is not None:
+            await create_audit_log(
+                "action",
+                action_id,
+                deleted_by,
+                {"operation": "deleted", "name": existing_action.get("name")},
+            )
         return True
     except Exception as e:
         logger.exception(f"Error deleting action: {str(e)}")

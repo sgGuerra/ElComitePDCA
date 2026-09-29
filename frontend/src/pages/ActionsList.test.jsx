@@ -69,7 +69,7 @@ describe('ActionsList', () => {
     });
     
     // Mock URL for CSV export
-    global.URL.createObjectURL = vi.fn(() => 'blob:test');
+    window.URL.createObjectURL = vi.fn(() => 'blob:test');
   });
 
   it('should render loading overlay initially and then fetch data', async () => {
@@ -122,6 +122,41 @@ describe('ActionsList', () => {
     
     expect(screen.getByText('Action 1')).toBeInTheDocument(); // high
     expect(screen.queryByText('Action 2')).not.toBeInTheDocument(); // low
+  });
+
+  it('combines search, status, and priority filters', async () => {
+    actionService.getActionsByProcess.mockResolvedValue([
+      { id: 1, name: 'Coincidencia completa', leader_name: 'María Ruiz', status: 'in_progress', priority: 'high', what: 'Actualizar protocolo' },
+      { id: 2, name: 'Estado diferente', leader_name: 'María Ruiz', status: 'pending', priority: 'high', what: 'Otra tarea' },
+      { id: 3, name: 'Responsable diferente', leader_name: 'Pablo Díaz', status: 'in_progress', priority: 'high', what: 'Otra tarea' },
+    ]);
+
+    renderActionsList();
+    await screen.findByText('Coincidencia completa');
+
+    fireEvent.change(screen.getByPlaceholderText('Buscar acción...'), {
+      target: { value: 'María Ruiz' },
+    });
+    const filters = screen.getAllByRole('combobox');
+    fireEvent.change(filters[0], { target: { value: 'in_progress' } });
+    fireEvent.change(filters[1], { target: { value: 'high' } });
+
+    const rows = within(screen.getByRole('table')).getAllByRole('row');
+    expect(rows).toHaveLength(2);
+    expect(screen.getByText('Coincidencia completa')).toBeInTheDocument();
+    expect(screen.queryByText('Estado diferente')).not.toBeInTheDocument();
+    expect(screen.queryByText('Responsable diferente')).not.toBeInTheDocument();
+  });
+
+  it('shows the empty state when no action matches the search', async () => {
+    renderActionsList();
+    await screen.findByText('Action 1');
+
+    fireEvent.change(screen.getByPlaceholderText('Buscar acción...'), {
+      target: { value: 'Acción inexistente' },
+    });
+
+    expect(screen.getByText(/No hay acciones/)).toBeInTheDocument();
   });
 
 
@@ -215,6 +250,6 @@ describe('ActionsList', () => {
     const exportBtn = screen.getByText('Exportar CSV');
     fireEvent.click(exportBtn);
     
-    expect(global.URL.createObjectURL).toHaveBeenCalled();
+    expect(window.URL.createObjectURL).toHaveBeenCalled();
   });
 });

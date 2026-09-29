@@ -16,11 +16,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 cleanWs()
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/test/dev']],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
+                checkout scm
                 echo "Codigo descargado - Branch: ${env.GIT_BRANCH}, Commit: ${env.GIT_COMMIT}"
             }
         }
@@ -39,12 +35,14 @@ pipeline {
                         python -m venv venv
                         . venv/bin/activate
                         pip install --no-cache-dir -r requirements.txt
-                        pytest --cov=app --cov-report=xml -v
+                        pytest --cov=app --cov-report=xml --junitxml=backend-test-results.xml -v
                     '''
                 }
             }
             post {
                 always {
+                    junit testResults: 'backend/backend-test-results.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'backend/coverage.xml,backend/backend-test-results.xml', allowEmptyArchive: true
                     echo 'Reporte de cobertura backend: backend/coverage.xml'
                 }
             }
@@ -62,12 +60,14 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         npm ci
-                        npm run test:cov
+                        npm run test:cov -- --reporter=junit --outputFile=frontend-test-results.xml
                     '''
                 }
             }
             post {
                 always {
+                    junit testResults: 'frontend/frontend-test-results.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'frontend/coverage/lcov.info,frontend/frontend-test-results.xml', allowEmptyArchive: true
                     echo 'Reporte de cobertura frontend: frontend/coverage/lcov.info'
                 }
             }
@@ -85,16 +85,12 @@ pipeline {
         // Quality Gate
         stage('Quality Gate') {
             steps {
-                script {
-                    try {
-                        timeout(time: 5, unit: 'MINUTES') {
-                            def qg = waitForQualityGate()
-                            if (qg.status != 'OK') {
-                                echo "Quality Gate no aprobado: ${qg.status}"
-                            }
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Quality Gate no aprobado: ${qg.status}"
                         }
-                    } catch (Exception e) {
-                        echo "Quality Gate check omitido: ${e.message}"
                     }
                 }
             }

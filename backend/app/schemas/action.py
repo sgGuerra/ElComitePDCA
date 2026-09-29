@@ -15,6 +15,7 @@ class ActionBase(BaseModel):
     how: Optional[str] = None
     where: Optional[str] = None
     status: Optional[str] = "pending"
+    priority: Optional[str] = "medium"
     evidence: Optional[str] = None
     completion_percentage: Optional[int] = 0
     related_type: Optional[str] = None
@@ -37,6 +38,7 @@ class ActionUpdate(BaseModel):
     how: Optional[str] = None
     where: Optional[str] = None
     status: Optional[str] = None
+    priority: Optional[str] = None
     evidence: Optional[str] = None
     completion_percentage: Optional[int] = None
     related_type: Optional[str] = None

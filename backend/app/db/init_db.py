@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS actions (
     how TEXT,
     location TEXT,
     status TEXT DEFAULT 'pending',
+    priority TEXT DEFAULT 'medium',
     evidence TEXT,
     completion_percentage INTEGER DEFAULT 0,
     related_type TEXT,
@@ -164,6 +165,18 @@ CREATE TABLE IF NOT EXISTS audit_reports (
 );
 """
 
+CREATE_AUDIT_LOGS_TABLE = """
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    details TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+);
+"""
+
 CREATE_OPPORTUNITIES_TABLE = """
 CREATE TABLE IF NOT EXISTS opportunities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -191,6 +204,7 @@ CREATE_TABLES = [
     CREATE_NOTIFICATIONS_TABLE,
     CREATE_USER_DEACTIVATION_REQUESTS_TABLE,
     CREATE_AUDIT_REPORTS_TABLE,
+    CREATE_AUDIT_LOGS_TABLE,
     CREATE_OPPORTUNITIES_TABLE
 ]
 
@@ -222,6 +236,7 @@ async def init_db():
                 ("processes", "leader_id", "INTEGER"),
                 ("processes", "priority", "TEXT DEFAULT 'medium'"),
                 ("processes", "departmentId", "TEXT"),
+                ("actions", "priority", "TEXT DEFAULT 'medium'"),
             ]
             
             for table, column, col_type in migrations:

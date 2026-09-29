@@ -1,5 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import csv
+import io
+from datetime import datetime, time
 from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 from app.core.auth import get_current_user, verify_admin, verify_auditor, settings
 from app.models.process import get_all_processes, get_process_by_id, update_process
@@ -12,10 +20,131 @@ from app.models.audit import (
     get_audit_report_by_id,
     get_audit_reports,
     update_audit_report,
-    delete_audit_report
+    delete_audit_report,
+    get_audit_logs,
+    get_audit_log_by_id,
 )
 
 router = APIRouter()
+
+
+def _normalize_audit_dates(start_date: Optional[datetime], end_date: Optional[datetime]):
+    if start_date and start_date.time() == time.min:
+        start_date = datetime.combine(start_date.date(), time.min)
+    if end_date and end_date.time() == time.min:
+        end_date = datetime.combine(end_date.date(), time.max)
+    return start_date, end_date
+
+
+async def _load_audit_logs(
+    entity_type: Optional[str],
+    entity_id: Optional[int],
+    user_id: Optional[int],
+    start_date: Optional[datetime],
+    end_date: Optional[datetime],
+    limit: int,
+    offset: int,
+):
+    start_date, end_date = _normalize_audit_dates(start_date, end_date)
+    return await get_audit_logs(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/")
+async def list_audit_logs(
+    entity_type: Optional[str] = None,
+    entity_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user: dict = Depends(verify_admin),
+):
+    """List audit events for administrators with optional filters."""
+    return await _load_audit_logs(
+        entity_type, entity_id, user_id, start_date, end_date, limit, offset
+    )
+
+
+@router.get("/export/{file_format}")
+async def export_audit_logs(
+    file_format: str,
+    entity_type: Optional[str] = None,
+    entity_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    current_user: dict = Depends(verify_admin),
+):
+    """Export filtered audit events as PDF, Excel, or CSV."""
+    if file_format not in {"pdf", "excel", "csv"}:
+        raise HTTPException(status_code=422, detail="Formato de exportación no soportado")
+
+    result = await _load_audit_logs(
+        entity_type, entity_id, user_id, start_date, end_date, 100000, 0
+    )
+    headers = ["ID", "Tipo de entidad", "ID de entidad", "Usuario", "Detalle", "Fecha"]
+    rows = [
+        [item["id"], item["entity_type"], item["entity_id"], item["user_name"], item["details"], item["created_at"]]
+        for item in result["data"]
+    ]
+    output = io.BytesIO()
+
+    if file_format == "excel":
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Registros"
+        worksheet.append(headers)
+        for row in rows:
+            worksheet.append(row)
+        workbook.save(output)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        extension = "xlsx"
+    elif file_format == "pdf":
+        document = SimpleDocTemplate(output, pagesize=landscape(letter))
+        table = Table([headers, *rows], repeatRows=1)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e5f")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ]))
+        document.build([table])
+        media_type = "application/pdf"
+        extension = "pdf"
+    else:
+        text_output = io.StringIO()
+        writer = csv.writer(text_output)
+        writer.writerow(headers)
+        writer.writerows(rows)
+        output.write(text_output.getvalue().encode("utf-8-sig"))
+        media_type = "text/csv; charset=utf-8"
+        extension = "csv"
+
+    output.seek(0)
+    filename = f"audit_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{extension}"
+    return StreamingResponse(
+        output,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/requests")
+async def list_audit_requests_for_admin(
+    current_user: dict = Depends(verify_admin),
+):
+    """List processes that have been submitted for audit review."""
+    return await get_all_processes(status_filter="pending_audit")
 
 AUDIT_REPORT_NOT_FOUND = "Informe de auditoría no encontrado"
 
@@ -42,7 +171,7 @@ async def request_process_audit(
         raise HTTPException(status_code=404, detail="Proceso no encontrado")
 
     updated_process_data = ProcessUpdate(status="pending_audit")
-    updated_process = await update_process(process_id, updated_process_data)
+    updated_process = await update_process(process_id, updated_process_data, current_user["id"])
 
     if not updated_process:
         raise HTTPException(status_code=500, detail="No se pudo actualizar el estado del proceso")
@@ -86,6 +215,7 @@ async def create_new_audit_report(
 @router.get("/reports", response_model=List[AuditReport])
 async def list_audit_reports(
     process_id: Optional[int] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     current_user: dict = Depends(get_current_user)
 ):
     """Lists audit reports. 
@@ -97,7 +227,11 @@ async def list_audit_reports(
         # Auditor sees only their reports unless they are also an admin
         auditor_id_filter = current_user["id"]
     
-    reports = await get_audit_reports(process_id=process_id, auditor_id=auditor_id_filter)
+    reports = await get_audit_reports(
+        process_id=process_id,
+        auditor_id=auditor_id_filter,
+        status=status_filter,
+    )
     return reports
 
 @router.get("/reports/{report_id}", response_model=AuditReport)
@@ -183,4 +317,30 @@ async def download_audit_report_pdf(
     # from fastapi.responses import FileResponse
     # return FileResponse(report["file_path"], filename=f"audit_report_{report_id}.pdf")
     
-    return {"message": "Download functionality for PDF reports is under development.", "file_path": report["file_path"]} 
+    return {"message": "Download functionality for PDF reports is under development.", "file_path": report["file_path"]}
+
+
+@router.get("/logs/{log_id}")
+async def read_audit_log(
+    log_id: int,
+    current_user: dict = Depends(verify_admin),
+):
+    log = await get_audit_log_by_id(log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Registro de auditoría no encontrado")
+    return log
+
+
+@router.get("/{entity_type}/{entity_id}")
+async def list_entity_audit_logs(
+    entity_type: str,
+    entity_id: int,
+    current_user: dict = Depends(verify_admin),
+):
+    result = await get_audit_logs(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        limit=100,
+        offset=0,
+    )
+    return result["data"]

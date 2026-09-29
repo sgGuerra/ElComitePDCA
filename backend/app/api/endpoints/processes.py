@@ -150,7 +150,7 @@ async def update_process_info(
         )
     
     # Update process
-    updated_process = await update_process(process_id, process_in)
+    updated_process = await update_process(process_id, process_in, current_user["id"])
     
     return updated_process
 
@@ -173,7 +173,7 @@ async def delete_process_by_id(
         )
     
     # Delete process
-    success = await delete_process(process_id)
+    success = await delete_process(process_id, current_user["id"])
     
     return {"success": success, "message": "Proceso eliminado correctamente"}
 

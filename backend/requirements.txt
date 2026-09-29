@@ -52,3 +52,6 @@ pytest>=7.4.4
 pytest-cov>=4.1.0
 httpx>=0.26.0
 pytest-asyncio>=0.23.0
+assertpy==1.1
+openpyxl==3.1.5
+reportlab==4.4.1

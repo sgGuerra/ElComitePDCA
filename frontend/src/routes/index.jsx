@@ -17,6 +17,7 @@ import AdminPanel from '../pages/AdminPanel';
 import AuditorPanel from '../pages/AuditorPanel';
 import NotFound from '../pages/NotFound';
 import UserProfile from '../pages/UserProfile';
+import NotificationsHistory from '../pages/NotificationsHistory';
 
 /**
  * Main application routing
@@ -39,6 +40,7 @@ const AppRoutes = () => {
         <Route path="/procesos/:processId/acciones" element={<ActionsList />} />
         <Route path="/procesos/:processId/acciones/:actionId" element={<ActionDetail />} />
         <Route path="/procesos/:processId/estadisticas" element={<ProcessStatistics />} />
+        <Route path="/perfil/notificaciones" element={<NotificationsHistory />} />
       </Route>
 
       {/* Admin routes - require admin role */}

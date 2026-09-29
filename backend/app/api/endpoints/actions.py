@@ -19,6 +19,7 @@ from app.models.action import (
     get_upcoming_deadlines
 )
 from app.models.process import get_process_by_id
+from app.models.audit import get_audit_logs
 from app.middleware.upload import save_upload, delete_file
 from app.schemas.action import Action, ActionCreate, ActionUpdate, ActionStatistics
 from app.models.resource import (
@@ -163,6 +164,29 @@ async def read_action(
     return action
 
 
+@router.get("/{action_id}/history")
+async def read_action_history(
+    action_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get the recorded changes for an action visible to the current user."""
+    action = await get_action_by_id(action_id)
+    if not action:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ACTION_NOT_FOUND,
+        )
+
+    _check_action_permissions(action, current_user)
+    result = await get_audit_logs(
+        entity_type="action",
+        entity_id=action_id,
+        limit=100,
+        offset=0,
+    )
+    return result["data"]
+
+
 @router.post("/", response_model=Action)
 async def create_new_action(
     action_in: ActionCreate,
@@ -296,7 +320,7 @@ async def update_action_info(
                 detail="Solo puedes actualizar el estado, porcentaje de completado y evidencias"
             )
     
-    updated_action = await update_action(action_id, action_in)
+    updated_action = await update_action(action_id, action_in, current_user["id"])
     return updated_action
 
 
@@ -361,7 +385,7 @@ async def update_action_with_evidence(
         update_data["evidence"] = evidence_path
     
     action_update = ActionUpdate(**update_data)
-    updated_action = await update_action(action_id, action_update)
+    updated_action = await update_action(action_id, action_update, current_user["id"])
     return updated_action
 
 
@@ -389,7 +413,7 @@ async def delete_action_by_id(
     if action.get("evidence"):
         delete_file(action["evidence"])
     
-    success = await delete_action(action_id)
+    success = await delete_action(action_id, current_user["id"])
     return {"success": success, "message": "Acción eliminada correctamente"}
 
 

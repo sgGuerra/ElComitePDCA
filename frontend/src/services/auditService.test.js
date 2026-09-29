@@ -28,13 +28,13 @@ describe('auditService', () => {
     it('should get reports without status filter', async () => {
       apiClient.get.mockResolvedValueOnce({ data: [] });
       await auditService.getAuditorReports();
-      expect(apiClient.get).toHaveBeenCalledWith('/api/audits/reports');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/reports', { params: {} });
     });
 
     it('should get reports with status filter', async () => {
       apiClient.get.mockResolvedValueOnce({ data: [] });
       await auditService.getAuditorReports('pending');
-      expect(apiClient.get).toHaveBeenCalledWith('/api/audits/reports?status=pending');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/reports', { params: { status: 'pending' } });
     });
 
     it('should throw on failure', async () => {
@@ -48,7 +48,7 @@ describe('auditService', () => {
     it('should return report data', async () => {
       apiClient.get.mockResolvedValueOnce({ data: { id: 1 } });
       const result = await auditService.getAuditReportById(1);
-      expect(apiClient.get).toHaveBeenCalledWith('/api/audits/reports/1');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/reports/1');
       expect(result.id).toBe(1);
     });
 
@@ -65,7 +65,7 @@ describe('auditService', () => {
       apiClient.post.mockResolvedValueOnce({ data: { id: 1, ...reportData } });
 
       const result = await auditService.createAuditReport(reportData);
-      expect(apiClient.post).toHaveBeenCalledWith('/api/audits/reports', reportData);
+      expect(apiClient.post).toHaveBeenCalledWith('/api/audit/reports', reportData);
       expect(result.title).toBe('Audit Report');
     });
 
@@ -81,7 +81,7 @@ describe('auditService', () => {
       apiClient.put.mockResolvedValueOnce({ data: { id: 1, title: 'Updated' } });
 
       const result = await auditService.updateAuditReport(1, { title: 'Updated' });
-      expect(apiClient.put).toHaveBeenCalledWith('/api/audits/reports/1', { title: 'Updated' });
+      expect(apiClient.put).toHaveBeenCalledWith('/api/audit/reports/1', { title: 'Updated' });
       expect(result.title).toBe('Updated');
     });
 
@@ -93,32 +93,25 @@ describe('auditService', () => {
 
   // --- addReportComment ---
   describe('addReportComment', () => {
-    it('should add a comment to a report', async () => {
-      apiClient.post.mockResolvedValueOnce({ data: { id: 1, content: 'Comment' } });
-
-      const result = await auditService.addReportComment(1, 'Comment');
-      expect(apiClient.post).toHaveBeenCalledWith('/api/audits/reports/1/comments', { content: 'Comment' });
-      expect(result.content).toBe('Comment');
-    });
-
-    it('should throw on failure', async () => {
-      apiClient.post.mockRejectedValueOnce(new Error('Err'));
-      await expect(auditService.addReportComment(1, 'test')).rejects.toThrow('Err');
+    it('should report that report comments are not supported by the API', async () => {
+      await expect(auditService.addReportComment(1, 'Comment'))
+        .rejects.toThrow('El backend no tiene un endpoint para comentarios de informes');
+      expect(apiClient.post).not.toHaveBeenCalled();
     });
   });
 
   // --- generateReportPdf ---
   describe('generateReportPdf', () => {
     it('should generate PDF', async () => {
-      apiClient.post.mockResolvedValueOnce({ data: { url: '/download/1.pdf' } });
+      apiClient.get.mockResolvedValueOnce({ data: { url: '/download/1.pdf' } });
 
       const result = await auditService.generateReportPdf(1);
-      expect(apiClient.post).toHaveBeenCalledWith('/api/audits/reports/1/generate-pdf');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/reports/1/download');
       expect(result.url).toBe('/download/1.pdf');
     });
 
     it('should throw on failure', async () => {
-      apiClient.post.mockRejectedValueOnce(new Error('Err'));
+      apiClient.get.mockRejectedValueOnce(new Error('Err'));
       await expect(auditService.generateReportPdf(1)).rejects.toThrow('Err');
     });
   });
@@ -129,11 +122,7 @@ describe('auditService', () => {
       apiClient.post.mockResolvedValueOnce({ data: { id: 1 } });
 
       const result = await auditService.requestAudit(1, 'Audit Title', 'Audit Description');
-      expect(apiClient.post).toHaveBeenCalledWith('/api/audits/request', {
-        process_id: 1,
-        title: 'Audit Title',
-        description: 'Audit Description',
-      });
+      expect(apiClient.post).toHaveBeenCalledWith('/api/audit/processes/1/request-audit');
       expect(result.id).toBe(1);
     });
 
@@ -146,11 +135,11 @@ describe('auditService', () => {
   // --- getAuditRequestsForAdmin ---
   describe('getAuditRequestsForAdmin', () => {
     it('should return admin audit requests', async () => {
-      apiClient.get.mockResolvedValueOnce({ data: [{ id: 1 }] });
+      apiClient.get.mockResolvedValueOnce({ data: [{ id: 1, status: 'pending_audit' }] });
 
       const result = await auditService.getAuditRequestsForAdmin();
-      expect(apiClient.get).toHaveBeenCalledWith('/api/audits/admin/requests');
-      expect(result).toEqual([{ id: 1 }]);
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/requests');
+      expect(result).toEqual([{ id: 1, status: 'pending_audit' }]);
     });
 
     it('should throw on failure', async () => {
@@ -165,7 +154,7 @@ describe('auditService', () => {
       apiClient.get.mockResolvedValueOnce({ data: [] });
 
       await auditService.getAuditReportsForProcess(1);
-      expect(apiClient.get).toHaveBeenCalledWith('/api/audits/process/1/reports');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/reports', { params: { process_id: 1 } });
     });
 
     it('should throw on failure', async () => {
@@ -202,7 +191,7 @@ describe('auditService', () => {
       apiClient.get.mockResolvedValueOnce({ data: { id: 1, action: 'CREATE' } });
 
       const result = await auditService.getAuditLogById(1);
-      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/1');
+      expect(apiClient.get).toHaveBeenCalledWith('/api/audit/logs/1');
       expect(result.action).toBe('CREATE');
     });
 

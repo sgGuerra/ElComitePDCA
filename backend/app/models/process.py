@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.db.database import get_one, get_all, insert, execute
 from app.schemas.process import ProcessCreate, ProcessUpdate
+from app.models.audit import create_audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,12 @@ async def create_process(process_data: ProcessCreate, user_id: int) -> Dict[str,
         )
         
         process = await get_one("SELECT * FROM processes WHERE id = ?", (process_id,))
+        await create_audit_log(
+            "process",
+            process_id,
+            user_id,
+            {"operation": "created", "name": process_data.name},
+        )
         return process
     except Exception:
         logger.exception("Error creating process")
@@ -89,7 +96,11 @@ async def get_all_processes(user_id: Optional[int] = None, include_stats: bool =
         return []
 
 
-async def update_process(process_id: int, process_data: ProcessUpdate) -> Optional[Dict[str, Any]]:
+async def update_process(
+    process_id: int,
+    process_data: ProcessUpdate,
+    changed_by: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
     """Update a process."""
     try:
         # Check if process exists
@@ -99,6 +110,7 @@ async def update_process(process_id: int, process_data: ProcessUpdate) -> Option
         
         # Prepare update fields
         update_fields = {}
+        changes = {}
         if process_data.name is not None:
             update_fields["name"] = process_data.name
         if process_data.description is not None:
@@ -128,6 +140,11 @@ async def update_process(process_id: int, process_data: ProcessUpdate) -> Option
         
         if not update_fields:
             return existing_process
+
+        for field, value in update_fields.items():
+            old_value = existing_process.get(field)
+            if value != old_value:
+                changes[field] = {"old": old_value, "new": value}
         
         # Create SET part of SQL query
         set_clause = ", ".join([f"{field} = ?" for field in update_fields.keys()])
@@ -138,6 +155,14 @@ async def update_process(process_id: int, process_data: ProcessUpdate) -> Option
             f"UPDATE processes SET {set_clause} WHERE id = ?",
             (*update_fields.values(), process_id)
         )
+
+        if changed_by is not None and changes:
+            await create_audit_log(
+                "process",
+                process_id,
+                changed_by,
+                {"operation": "updated", "changes": changes},
+            )
         
         # Return updated process
         return await get_process_by_id(process_id)
@@ -146,7 +171,7 @@ async def update_process(process_id: int, process_data: ProcessUpdate) -> Option
         return None
 
 
-async def delete_process(process_id: int) -> bool:
+async def delete_process(process_id: int, deleted_by: Optional[int] = None) -> bool:
     """Delete a process."""
     try:
         # Check if process exists
@@ -156,6 +181,13 @@ async def delete_process(process_id: int) -> bool:
         
         # Delete process
         await execute("DELETE FROM processes WHERE id = ?", (process_id,))
+        if deleted_by is not None:
+            await create_audit_log(
+                "process",
+                process_id,
+                deleted_by,
+                {"operation": "deleted", "name": existing_process.get("name")},
+            )
         return True
     except Exception:
         logger.exception("Error deleting process")
