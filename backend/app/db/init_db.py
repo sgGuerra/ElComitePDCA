@@ -211,7 +211,7 @@ async def init_db():
                     logger.info(f"Executing SQL statement {i+1}: {create_statement}")
                     await conn.execute(create_statement)
                 except Exception as e:
-                    logger.error(f"Error executing statement {i+1}: {e}")
+                    logger.exception(f"Error executing statement {i+1}: {e}")
                     logger.error(f"Statement was: {create_statement}")
                     raise
             await conn.commit()
@@ -238,6 +238,6 @@ async def init_db():
         
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Error initializing database: {e}")
+        logger.exception(f"Error initializing database: {e}")
         raise
 

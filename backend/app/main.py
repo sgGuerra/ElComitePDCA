@@ -24,6 +24,26 @@ async def lifespan(app: FastAPI):
     # Initialize database on startup
     logger.info("Initializing database")
     await init_db()
+    
+    # Run setup scripts to create admin and seed data
+    try:
+        import sys
+        # ensure the root backend path is in sys.path
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if backend_dir not in sys.path:
+            sys.path.insert(0, backend_dir)
+
+        import create_admin
+        import seed_db
+        
+        logger.info("Setting up admin user...")
+        await create_admin.create_admin()
+        
+        logger.info("Running database seeder...")
+        seed_db.seed_database()
+    except Exception as e:
+        logger.error(f"Error running setup scripts: {e}", exc_info=True)
+
     yield
     # Cleanup on shutdown
     logger.info("Shutting down application")

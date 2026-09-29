@@ -7,6 +7,30 @@ from app.models.action import get_action_by_id
 
 logger = logging.getLogger(__name__)
 
+PROCESS_ID_FILTER = " AND process_id = ?"
+
+def _get_date_filter_condition(date_range: str, filter_type: str = "history") -> str:
+    if filter_type == "history":
+        if date_range == "week":
+            return "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
+        elif date_range == "month":
+            return "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
+        elif date_range == "quarter":
+            return "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
+        elif date_range == "year":
+            return "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+    elif filter_type == "upcoming":
+        if date_range == "week":
+            return "AND target_date <= date('now', '+7 days')"
+        elif date_range == "month":
+            return "AND target_date <= date('now', '+1 month')"
+        elif date_range == "quarter":
+            return "AND target_date <= date('now', '+3 months')"
+        elif date_range == "year":
+            return "AND target_date <= date('now', '+1 year')"
+    return ""
+
+
 
 async def get_dashboard_statistics() -> Dict[str, Any]:
     """Get general dashboard statistics."""
@@ -44,7 +68,7 @@ async def get_dashboard_statistics() -> Dict[str, Any]:
             "last_action": last_action
         }
     except Exception as e:
-        logger.error(f"Error getting dashboard statistics: {str(e)}")
+        logger.exception(f"Error getting dashboard statistics: {str(e)}")
         return {
             "total_actions": 0,
             "completed_actions": 0,
@@ -74,7 +98,7 @@ async def get_actions_by_type() -> List[Dict[str, Any]]:
         )
         return results
     except Exception as e:
-        logger.error(f"Error getting actions by type: {str(e)}")
+        logger.exception(f"Error getting actions by type: {str(e)}")
         return []
 
 
@@ -97,16 +121,7 @@ async def get_actions_by_status(
         List of actions grouped by status
     """
     try:
-        # Add date filtering
-        date_filter = ""
-        if date_range == "week":
-            date_filter = "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
-        elif date_range == "month":
-            date_filter = "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
-        elif date_range == "quarter":
-            date_filter = "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
-        elif date_range == "year":
-            date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+        date_filter = _get_date_filter_condition(date_range, "history")
         
         # Add process filter
         query_params = []
@@ -119,7 +134,7 @@ async def get_actions_by_status(
         """
         
         if process_id:
-            query += " AND process_id = ?"
+            query += PROCESS_ID_FILTER
             query_params.append(process_id)
             
         if date_filter:
@@ -162,7 +177,7 @@ async def get_actions_by_status(
         
         return counts
     except Exception as e:
-        logger.error(f"Error getting actions by status: {str(e)}")
+        logger.exception(f"Error getting actions by status: {str(e)}")
         return []
 
 
@@ -183,16 +198,7 @@ async def get_upcoming_deadlines(
         List of actions with upcoming deadlines
     """
     try:
-        # Determine date range
-        date_filter = ""
-        if date_range == "week":
-            date_filter = "AND target_date <= date('now', '+7 days')"
-        elif date_range == "month":
-            date_filter = "AND target_date <= date('now', '+1 month')"
-        elif date_range == "quarter":
-            date_filter = "AND target_date <= date('now', '+3 months')"
-        elif date_range == "year":
-            date_filter = "AND target_date <= date('now', '+1 year')"
+        date_filter = _get_date_filter_condition(date_range, "upcoming")
         
         # Build query with proper parameterization
         query_params = [limit]  # Start with limit as a parameter
@@ -223,7 +229,7 @@ async def get_upcoming_deadlines(
         
         return actions
     except Exception as e:
-        logger.error(f"Error getting upcoming deadlines: {str(e)}")
+        logger.exception(f"Error getting upcoming deadlines: {str(e)}")
         return []
 
 
@@ -242,16 +248,7 @@ async def get_completion_rate(
         Completion rate as a percentage
     """
     try:
-        # Add date filtering
-        date_filter = ""
-        if date_range == "week":
-            date_filter = "AND (created_at >= date('now', '-7 days') OR updated_at >= date('now', '-7 days'))"
-        elif date_range == "month":
-            date_filter = "AND (created_at >= date('now', '-1 month') OR updated_at >= date('now', '-1 month'))"
-        elif date_range == "quarter":
-            date_filter = "AND (created_at >= date('now', '-3 months') OR updated_at >= date('now', '-3 months'))"
-        elif date_range == "year":
-            date_filter = "AND (created_at >= date('now', '-1 year') OR updated_at >= date('now', '-1 year'))"
+        date_filter = _get_date_filter_condition(date_range, "history")
         
         # Query with proper parameterization
         query_params = []
@@ -264,7 +261,7 @@ async def get_completion_rate(
         """
         
         if process_id:
-            total_query += " AND process_id = ?"
+            total_query += PROCESS_ID_FILTER
             query_params.append(process_id)
             
         if date_filter:
@@ -280,7 +277,7 @@ async def get_completion_rate(
         """
         
         if process_id:
-            completed_query += " AND process_id = ?"
+            completed_query += PROCESS_ID_FILTER
             # We reuse the same parameters as before
             
         if date_filter:
@@ -295,7 +292,7 @@ async def get_completion_rate(
         
         return {"rate": rate}
     except Exception as e:
-        logger.error(f"Error getting completion rate: {str(e)}")
+        logger.exception(f"Error getting completion rate: {str(e)}")
         return {"rate": 0}
 
 
@@ -417,7 +414,7 @@ async def get_actions_over_time(
         
         return result
     except Exception as e:
-        logger.error(f"Error getting actions over time: {str(e)}")
+        logger.exception(f"Error getting actions over time: {str(e)}")
         return []
 
 
@@ -454,5 +451,5 @@ async def get_process_statistics(include_zero_counts: bool = False) -> List[Dict
         
         return processes
     except Exception as e:
-        logger.error(f"Error getting process statistics: {str(e)}")
+        logger.exception(f"Error getting process statistics: {str(e)}")
         return []

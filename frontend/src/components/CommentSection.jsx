@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaComment, FaPaperPlane, FaTrash, FaUserCircle } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaComment, FaPaperPlane, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LoadingOverlay from './LoadingOverlay';

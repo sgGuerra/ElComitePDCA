@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   FaFilePdf, FaDownload, FaComment, FaEye, FaHistory, 
-  FaPlusCircle, FaSearch, FaSync, FaFilter, FaClipboardCheck 
+  FaPlusCircle, FaSync, FaClipboardCheck 
 } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import auditService from '../services/auditService';
 import processService from '../services/processService';
@@ -27,9 +25,7 @@ const AuditorPanel = () => {
     recommendations: ''
   });
   
-  const { user } = useAuth();
   const { success, error: showError } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchInitialData();
@@ -220,10 +216,10 @@ const AuditorPanel = () => {
                   <form onSubmit={handleCreateReport}>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                           Título del Informe
                         </label>
-                        <input
+        <input id="title"
                           type="text"
                           name="title"
                           value={newReportForm.title}
@@ -234,10 +230,10 @@ const AuditorPanel = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="process_id" className="block text-sm font-medium text-gray-700 mb-1">
                           Proceso
                         </label>
-                        <select
+        <select id="process_id"
                           name="process_id"
                           value={newReportForm.process_id}
                           onChange={handleFormChange}
@@ -254,10 +250,10 @@ const AuditorPanel = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="findings" className="block text-sm font-medium text-gray-700 mb-1">
                           Hallazgos
                         </label>
-                        <textarea
+        <textarea id="findings"
                           name="findings"
                           value={newReportForm.findings}
                           onChange={handleFormChange}
@@ -267,10 +263,10 @@ const AuditorPanel = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="recommendations" className="block text-sm font-medium text-gray-700 mb-1">
                           Recomendaciones
                         </label>
-                        <textarea
+        <textarea id="recommendations"
                           name="recommendations"
                           value={newReportForm.recommendations}
                           onChange={handleFormChange}

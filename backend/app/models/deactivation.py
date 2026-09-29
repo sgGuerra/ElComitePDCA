@@ -61,7 +61,7 @@ async def create_deactivation_request(
         
         return request
     except Exception as e:
-        logger.error(f"Error creating deactivation request: {e}")
+        logger.exception(f"Error creating deactivation request: {e}")
         raise
 
 
@@ -82,7 +82,7 @@ async def get_deactivation_request_by_id(request_id: int) -> Optional[Dict[str, 
         
         return request
     except Exception as e:
-        logger.error(f"Error getting deactivation request by ID: {e}")
+        logger.exception(f"Error getting deactivation request by ID: {e}")
         raise
 
 
@@ -111,7 +111,7 @@ async def get_deactivation_requests(
         
         return requests
     except Exception as e:
-        logger.error(f"Error getting deactivation requests: {e}")
+        logger.exception(f"Error getting deactivation requests: {e}")
         raise
 
 
@@ -163,5 +163,5 @@ async def process_deactivation_request(
         # Get the updated request
         return await get_deactivation_request_by_id(request_id)
     except Exception as e:
-        logger.error(f"Error processing deactivation request: {e}")
+        logger.exception(f"Error processing deactivation request: {e}")
         raise

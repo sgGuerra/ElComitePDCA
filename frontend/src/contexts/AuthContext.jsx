@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import authService from '../services/authService';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       setLoading(true);
       await authService.login(email, password);
@@ -33,22 +33,22 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout();
     setUser(null);
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const updateUserProfile = (updatedProfileData) => {
+  const updateUserProfile = useCallback((updatedProfileData) => {
     const currentUser = authService.getCurrentUser();
     const updatedUser = { ...currentUser, ...updatedProfileData };
     setUser(updatedUser);
     authService.updateCurrentUser(updatedUser);
-  };
+  }, []);
 
-  const switchRole = async (newActiveRole) => {
+  const switchRole = useCallback(async (newActiveRole) => {
     try {
       setLoading(true);
       const updatedUser = await authService.switchRole(newActiveRole);
@@ -59,9 +59,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       throw error;
     }
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     login,
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
     updateUserProfile,
     switchRole,
     isAuthenticated: !!user
-  };
+  }), [user, loading, login, logout, updateUserProfile, switchRole]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

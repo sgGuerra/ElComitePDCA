@@ -126,8 +126,8 @@ const UserManagement = () => {
 
       <form onSubmit={handleAddUser} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Nombre</label>
-          <input
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre</label>
+        <input id="name"
             type="text"
             name="name"
             value={newUser.name}
@@ -137,8 +137,8 @@ const UserManagement = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-          <input
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+        <input id="email"
             type="email"
             name="email"
             value={newUser.email}
@@ -148,8 +148,8 @@ const UserManagement = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-          <input
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">Contraseña</label>
+        <input id="password"
             type="password"
             name="password"
             value={newUser.password}
@@ -159,8 +159,8 @@ const UserManagement = () => {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Rol</label>
-          <select
+          <label htmlFor="role" className="block text-sm font-medium text-gray-700">Rol</label>
+        <select id="role"
             name="role"
             value={newUser.role}
             onChange={handleInputChange}

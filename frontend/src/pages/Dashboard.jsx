@@ -21,6 +21,251 @@ import statisticsService from '../services/statisticsService';
 import processService from '../services/processService';
 import { useToast } from '../contexts/ToastContext';
 
+const KPICards = ({ kpis, completionRate }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="text-sm text-gray-500">Total Acciones</p>
+          <p className="text-2xl font-bold">{kpis.totalActions}</p>
+        </div>
+        <div className="p-3 bg-blue-100 rounded-full">
+          <FaChartLine className="text-blue-500 text-xl" />
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="text-sm text-gray-500">Completadas</p>
+          <p className="text-2xl font-bold">{kpis.completedActions}</p>
+        </div>
+        <div className="p-3 bg-green-100 rounded-full">
+          <FaRegCheckCircle className="text-green-500 text-xl" />
+        </div>
+      </div>
+      <div className="mt-2">
+        <div className="text-xs text-gray-500 flex justify-between">
+          <span>Tasa de completado</span>
+          <span className="font-medium">{completionRate}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+          <div
+            className="bg-green-500 h-1.5 rounded-full"
+            style={{ width: `${completionRate}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="text-sm text-gray-500">Pendientes</p>
+          <p className="text-2xl font-bold">{kpis.pendingActions}</p>
+        </div>
+        <div className="p-3 bg-yellow-100 rounded-full">
+          <FaRegClock className="text-yellow-500 text-xl" />
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="text-sm text-gray-500">Vencidas</p>
+          <p className="text-2xl font-bold">{kpis.overdueActions}</p>
+        </div>
+        <div className="p-3 bg-red-100 rounded-full">
+          <FaInfoCircle className="text-red-500 text-xl" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ActionTracking = ({ lastAction, completionRate, upcomingDeadlines, completedActions, getTimeAgo, formatDate }) => (
+  <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow space-y-5">
+    <div className="flex justify-between items-center">
+      <h2 className="text-lg font-semibold text-primary">Seguimiento de Acciones</h2>
+      <button className="flex items-center space-x-2 text-sm text-primary hover:underline">
+        <FaPlus className="text-xs" />
+        <span>Nueva Acción</span>
+      </button>
+    </div>
+    
+    {lastAction ? (
+      <>
+        <div className="border-b pb-4">
+          <p className="text-sm font-medium">Última acción registrada:</p>
+          <p className="text-base font-semibold mt-1">{lastAction.name}</p>
+          <p className="text-xs text-gray-500">por {lastAction.leader_name || 'Usuario'} {getTimeAgo(lastAction.created_at)}</p>
+          <p className="text-sm text-gray-600 mt-2 line-clamp-2">{lastAction.what || 'Sin descripción disponible.'}</p>
+        </div>
+        
+        <div>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">Estado de avance</h3>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+            <div className="bg-primary h-2.5 rounded-full" style={{ width: `${completionRate}%` }}></div>
+          </div>
+        </div>
+      </>
+    ) : (
+      <p className="text-sm text-gray-500 italic">No hay registros recientes</p>
+    )}
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm pt-2">
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-3">Próximas a vencer</h3>
+        <div className="space-y-2">
+          {upcomingDeadlines.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">No hay acciones por vencer</p>
+          ) : (
+            upcomingDeadlines.map((action) => (
+              <div key={`vencer-${action.id}`} className="bg-lightgray rounded-md px-3 py-2.5 flex items-center justify-between hover:shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-700">{action.name}</span>
+                  <span className="text-xs text-gray-500">{formatDate(action.target_date)}</span>
+                </div>
+                <FaRegClock className="text-lg text-orange-500" />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-3">Completadas recientemente</h3>
+        <div className="space-y-2">
+          {completedActions.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">No hay acciones completadas</p>
+          ) : (
+            completedActions.map((action) => (
+              <div key={`completado-${action.id}`} className="bg-lightgray rounded-md px-3 py-2.5 flex items-center justify-between hover:shadow-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-700">{action.name}</span>
+                  <span className="text-xs text-gray-500">{getTimeAgo(action.updated_at)}</span>
+                </div>
+                <FaRegCheckCircle className="text-lg text-green-500" />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const DashboardCharts = ({ pieChartData, barChartData, lineChartData, getStatusColorForChart }) => (
+  <div className="lg:col-span-2 grid grid-rows-2 gap-6">
+    <div className="bg-white p-6 rounded-xl shadow space-y-4">
+      <h2 className="text-lg font-semibold text-primary mb-2">Distribución de Acciones</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-sm font-medium text-gray-600 mb-2 text-center">Por Tipo</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie 
+                data={pieChartData} 
+                dataKey="value" 
+                nameKey="name" 
+                cx="50%" 
+                cy="50%" 
+                outerRadius={70} 
+                label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {pieChartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => [`${value} acciones`, 'Cantidad']} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div>
+          <h3 className="text-sm font-medium text-gray-600 mb-2 text-center">Por Estado</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={barChartData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" />
+              <YAxis dataKey="name" type="category" width={100} />
+              <Tooltip formatter={(value) => [`${value} acciones`, 'Cantidad']} />
+              <Bar dataKey="value" background={{ fill: '#f5f5f5' }}>
+                {barChartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getStatusColorForChart(entry.name)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+
+    <div className="bg-white p-6 rounded-xl shadow space-y-3">
+      <h2 className="text-lg font-semibold text-primary">Tendencia en el tiempo</h2>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={lineChartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line type="monotone" dataKey="completed" stroke="#22c55e" name="Completadas" />
+          <Line type="monotone" dataKey="pending" stroke="#eab308" name="Pendientes" />
+          <Line type="monotone" dataKey="overdue" stroke="#f97316" name="Vencidas" />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
+
+const DashboardSummary = ({ kpis, completionRate, processes, selectedProcess }) => (
+  <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="bg-white p-6 rounded-xl shadow space-y-4">
+      <h2 className="text-lg font-semibold text-primary">Indicadores Clave</h2>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="border-r pr-4">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Eficiencia</h3>
+          <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+            <li>Tasa de cumplimiento: <span className="font-medium">{completionRate}%</span></li>
+            <li>Tiempo promedio de resolución: <span className="font-medium">5.2 días</span></li>
+            <li>Acciones por proceso: <span className="font-medium">{(kpis.totalActions / (processes.length || 1)).toFixed(1)}</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Calidad</h3>
+          <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+            <li>Efectividad de acciones: <span className="font-medium">87%</span></li>
+            <li>Recurrencia de hallazgos: <span className="font-medium">12%</span></li>
+            <li>Satisfacción: <span className="font-medium">4.2/5</span></li>
+          </ul>
+        </div>
+      </div>
+      <div className="text-xs text-gray-500 mt-2">Actualizado el {new Date().toLocaleDateString('es-ES')}</div>
+    </div>
+    
+    <div className="bg-white p-6 rounded-xl shadow space-y-4">
+      <h2 className="text-lg font-semibold text-primary">Resumen de actividad</h2>
+      <div>
+        <p className="text-sm text-gray-600">
+          En el periodo actual, se han registrado <span className="font-medium">{kpis.totalActions} acciones</span> en total, 
+          de las cuales <span className="font-medium">{kpis.completedActions}</span> han sido completadas 
+          satisfactoriamente, lo que representa una tasa de cumplimiento del <span className="font-medium">{completionRate}%</span>.
+        </p>
+        <p className="text-sm text-gray-600 mt-2">
+          Actualmente hay <span className="font-medium">{kpis.pendingActions} acciones</span> en proceso o pendientes, 
+          y <span className="font-medium">{kpis.overdueActions} acciones</span> con plazos vencidos que requieren atención inmediata.
+        </p>
+        <p className="text-sm text-gray-600 mt-2">
+          {selectedProcess !== 'all' ? 
+            `Estos datos corresponden al proceso "${processes.find(p => p.id.toString() === selectedProcess.toString())?.name}"` : 
+            'Estos datos corresponden a todos los procesos.'}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('Resumen');
   const [loading, setLoading] = useState(true);
@@ -112,7 +357,7 @@ const Dashboard = () => {
       }
 
       // Set completion rate
-      if (completionRateData && completionRateData.rate !== undefined) {
+      if (completionRateData?.rate !== undefined) {
         setCompletionRate(completionRateData.rate);
       }
 
@@ -144,7 +389,7 @@ const Dashboard = () => {
         })));
 
         // Get completed actions for display
-        if (completed && completed.actions) {
+        if (completed?.actions) {
           setCompletedActions(completed.actions.slice(0, 4));
         } else {
           setCompletedActions([]);
@@ -152,7 +397,7 @@ const Dashboard = () => {
       }
 
       // Fetch last action
-      if (stats && stats.lastAction) {
+      if (stats?.lastAction) {
         setLastAction(stats.lastAction);
       }
 
@@ -305,250 +550,32 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-500">Total Acciones</p>
-                        <p className="text-2xl font-bold">{kpis.totalActions}</p>
-                      </div>
-                      <div className="p-3 bg-blue-100 rounded-full">
-                        <FaChartLine className="text-blue-500 text-xl" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-500">Completadas</p>
-                        <p className="text-2xl font-bold">{kpis.completedActions}</p>
-                      </div>
-                      <div className="p-3 bg-green-100 rounded-full">
-                        <FaRegCheckCircle className="text-green-500 text-xl" />
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <div className="text-xs text-gray-500 flex justify-between">
-                        <span>Tasa de completado</span>
-                        <span className="font-medium">{completionRate}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                        <div
-                          className="bg-green-500 h-1.5 rounded-full"
-                          style={{ width: `${completionRate}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-500">Pendientes</p>
-                        <p className="text-2xl font-bold">{kpis.pendingActions}</p>
-                      </div>
-                      <div className="p-3 bg-yellow-100 rounded-full">
-                        <FaRegClock className="text-yellow-500 text-xl" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-500">Vencidas</p>
-                        <p className="text-2xl font-bold">{kpis.overdueActions}</p>
-                      </div>
-                      <div className="p-3 bg-red-100 rounded-full">
-                        <FaInfoCircle className="text-red-500 text-xl" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <KPICards kpis={kpis} completionRate={completionRate} />
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Action Tracking Section */}
-                <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow space-y-5">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-primary">Seguimiento de Acciones</h2>
-                    <button className="flex items-center space-x-2 text-sm text-primary hover:underline">
-                      <FaPlus className="text-xs" />
-                      <span>Nueva Acción</span>
-                    </button>
-                  </div>
-                  
-                  {lastAction ? (
-                    <>
-                      <div className="border-b pb-4">
-                        <p className="text-sm font-medium">Última acción registrada:</p>
-                        <p className="text-base font-semibold mt-1">{lastAction.name}</p>
-                        <p className="text-xs text-gray-500">por {lastAction.leader_name || 'Usuario'} {getTimeAgo(lastAction.created_at)}</p>
-                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{lastAction.what || 'Sin descripción disponible.'}</p>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-800 mb-3">Estado de avance</h3>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                          <div className="bg-primary h-2.5 rounded-full" style={{ width: `${completionRate}%` }}></div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">No hay registros recientes</p>
-                  )}
+                <ActionTracking 
+                  lastAction={lastAction} 
+                  completionRate={completionRate} 
+                  upcomingDeadlines={upcomingDeadlines} 
+                  completedActions={completedActions} 
+                  getTimeAgo={getTimeAgo} 
+                  formatDate={formatDate} 
+                />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm pt-2">
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-3">Próximas a vencer</h3>
-                      <div className="space-y-2">
-                        {upcomingDeadlines.length === 0 ? (
-                          <p className="text-sm text-gray-500 italic">No hay acciones por vencer</p>
-                        ) : (
-                          upcomingDeadlines.map((action) => (
-                            <div key={`vencer-${action.id}`} className="bg-lightgray rounded-md px-3 py-2.5 flex items-center justify-between hover:shadow-sm">
-                              <div className="flex flex-col">
-                                <span className="text-xs text-gray-700">{action.name}</span>
-                                <span className="text-xs text-gray-500">{formatDate(action.target_date)}</span>
-                              </div>
-                              <FaRegClock className="text-lg text-orange-500" />
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-3">Completadas recientemente</h3>
-                      <div className="space-y-2">
-                        {completedActions.length === 0 ? (
-                          <p className="text-sm text-gray-500 italic">No hay acciones completadas</p>
-                        ) : (
-                          completedActions.map((action) => (
-                            <div key={`completado-${action.id}`} className="bg-lightgray rounded-md px-3 py-2.5 flex items-center justify-between hover:shadow-sm">
-                              <div className="flex flex-col">
-                                <span className="text-xs text-gray-700">{action.name}</span>
-                                <span className="text-xs text-gray-500">{getTimeAgo(action.updated_at)}</span>
-                              </div>
-                              <FaRegCheckCircle className="text-lg text-green-500" />
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Charts Section */}
-                <div className="lg:col-span-2 grid grid-rows-2 gap-6">
-                  {/* Actions by Type and Status */}
-                  <div className="bg-white p-6 rounded-xl shadow space-y-4">
-                    <h2 className="text-lg font-semibold text-primary mb-2">Distribución de Acciones</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-600 mb-2 text-center">Por Tipo</h3>
-                        <ResponsiveContainer width="100%" height={180}>
-                          <PieChart>
-                            <Pie 
-                              data={pieChartData} 
-                              dataKey="value" 
-                              nameKey="name" 
-                              cx="50%" 
-                              cy="50%" 
-                              outerRadius={70} 
-                              label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            >
-                              {pieChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => [`${value} acciones`, 'Cantidad']} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-600 mb-2 text-center">Por Estado</h3>
-                        <ResponsiveContainer width="100%" height={180}>
-                          <BarChart data={barChartData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" width={100} />
-                            <Tooltip formatter={(value) => [`${value} acciones`, 'Cantidad']} />
-                            <Bar dataKey="value" background={{ fill: '#f5f5f5' }}>
-                              {barChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={getStatusColorForChart(entry.name)} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Trend Over Time */}
-                  <div className="bg-white p-6 rounded-xl shadow space-y-3">
-                    <h2 className="text-lg font-semibold text-primary">Tendencia en el tiempo</h2>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={lineChartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="completed" stroke="#22c55e" name="Completadas" />
-                        <Line type="monotone" dataKey="pending" stroke="#eab308" name="Pendientes" />
-                        <Line type="monotone" dataKey="overdue" stroke="#f97316" name="Vencidas" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+                <DashboardCharts 
+                  pieChartData={pieChartData} 
+                  barChartData={barChartData} 
+                  lineChartData={lineChartData} 
+                  getStatusColorForChart={getStatusColorForChart} 
+                />
                 
-                {/* Summary Section */}
-                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white p-6 rounded-xl shadow space-y-4">
-                    <h2 className="text-lg font-semibold text-primary">Indicadores Clave</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="border-r pr-4">
-                        <h3 className="text-sm font-medium text-gray-600 mb-2">Eficiencia</h3>
-                        <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                          <li>Tasa de cumplimiento: <span className="font-medium">{completionRate}%</span></li>
-                          <li>Tiempo promedio de resolución: <span className="font-medium">5.2 días</span></li>
-                          <li>Acciones por proceso: <span className="font-medium">{(kpis.totalActions / (processes.length || 1)).toFixed(1)}</span></li>
-                        </ul>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-600 mb-2">Calidad</h3>
-                        <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                          <li>Efectividad de acciones: <span className="font-medium">87%</span></li>
-                          <li>Recurrencia de hallazgos: <span className="font-medium">12%</span></li>
-                          <li>Satisfacción: <span className="font-medium">4.2/5</span></li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2">Actualizado el {new Date().toLocaleDateString('es-ES')}</div>
-                  </div>
-                  
-                  <div className="bg-white p-6 rounded-xl shadow space-y-4">
-                    <h2 className="text-lg font-semibold text-primary">Resumen de actividad</h2>
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        En el periodo actual, se han registrado <span className="font-medium">{kpis.totalActions} acciones</span> en total, 
-                        de las cuales <span className="font-medium">{kpis.completedActions}</span> han sido completadas 
-                        satisfactoriamente, lo que representa una tasa de cumplimiento del <span className="font-medium">{completionRate}%</span>.
-                      </p>
-                      <p className="text-sm text-gray-600 mt-2">
-                        Actualmente hay <span className="font-medium">{kpis.pendingActions} acciones</span> en proceso o pendientes, 
-                        y <span className="font-medium">{kpis.overdueActions} acciones</span> con plazos vencidos que requieren atención inmediata.
-                      </p>
-                      <p className="text-sm text-gray-600 mt-2">
-                        {selectedProcess !== 'all' ? 
-                          `Estos datos corresponden al proceso "${processes.find(p => p.id.toString() === selectedProcess.toString())?.name}"` : 
-                          'Estos datos corresponden a todos los procesos.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <DashboardSummary 
+                  kpis={kpis} 
+                  completionRate={completionRate} 
+                  processes={processes} 
+                  selectedProcess={selectedProcess} 
+                />
               </div>
             </>
           )}

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   FaArrowLeft, FaEdit, FaRegClock, FaRegUser, FaRegFileAlt, 
-  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt, FaHistory, FaComment
+  FaCheck, FaTimes, FaUpload, FaDownload, FaTrashAlt
 } from 'react-icons/fa';
 import actionService from '../services/actionService';
 import fileService from '../services/fileService';
@@ -12,7 +12,6 @@ import userService from '../services/userService';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
-import ResourceManager from '../components/ResourceManager';
 import CommentSection from '../components/CommentSection';
 
 const ActionDetail = () => {
@@ -396,8 +395,8 @@ const ActionDetail = () => {
                 </div>
               ) : (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
-                  <select
+                  <label htmlFor="leader_id" className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+        <select id="leader_id"
                     name="leader_id"
                     value={actionForm.leader_id}
                     onChange={handleInputChange}
@@ -413,8 +412,8 @@ const ActionDetail = () => {
               
               {editing && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha objetivo</label>
-                  <input
+                  <label htmlFor="target_date" className="block text-sm font-medium text-gray-700 mb-1">Fecha objetivo</label>
+        <input id="target_date"
                     type="date"
                     name="target_date"
                     value={actionForm.target_date}
@@ -426,8 +425,8 @@ const ActionDetail = () => {
               
               {editing && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+        <select id="status"
                     name="status"
                     value={actionForm.status}
                     onChange={handleInputChange}
@@ -443,8 +442,8 @@ const ActionDetail = () => {
               
               {editing && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
-                  <select
+                  <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+        <select id="priority"
                     name="priority"
                     value={actionForm.priority}
                     onChange={handleInputChange}

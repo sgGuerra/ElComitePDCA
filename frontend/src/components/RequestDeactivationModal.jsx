@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import { useToast } from '../contexts/ToastContext';
-import { useAuth } from '../contexts/AuthContext';
 import userService from '../services/userService';
 
 const RequestDeactivationModal = ({ isOpen, onClose }) => {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const { success, error: showError } = useToast();
-  const { user } = useAuth();
   
   if (!isOpen) return null;
   
@@ -21,7 +19,7 @@ const RequestDeactivationModal = ({ isOpen, onClose }) => {
     
     setLoading(true);
     try {
-      const response = await userService.requestDeactivation(reason);
+      await userService.requestDeactivation(reason);
       success('Solicitud de desactivación enviada correctamente');
       setReason('');
       onClose();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaExclamationTriangle, FaCheck, FaTimes, FaExchangeAlt } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaExchangeAlt } from 'react-icons/fa';
 import userService from '../services/userService';
 import assignmentService from '../services/assignmentService';
 import { useToast } from '../contexts/ToastContext';
@@ -90,7 +90,7 @@ const DeactivationRequests = () => {
   const processDeactivation = async (requestId, approve, newLeaderId = null) => {
     try {
       setProcessing(true);
-      const response = await userService.processDeactivationRequest(requestId, approve, newLeaderId);
+      await userService.processDeactivationRequest(requestId, approve, newLeaderId);
       
       success(approve 
         ? 'Solicitud aprobada y cuenta desactivada' 
@@ -125,7 +125,7 @@ const DeactivationRequests = () => {
         await assignmentService.transferProcessLeadership(
           process.id,
           selectedRequest.user_id,
-          parseInt(selectedLeader)
+          Number.parseInt(selectedLeader)
         );
       }
       

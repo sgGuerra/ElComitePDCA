@@ -1,5 +1,8 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.auth import get_current_user
 from app.core.config import settings
@@ -36,9 +39,10 @@ async def request_account_deactivation(
         )
         return request
     except Exception as e:
+        logger.exception(f"Error en request_account_deactivation: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=400,
+            detail="Error al solicitar la desactivación de la cuenta. Inténtalo de nuevo."
         )
 
 
@@ -51,9 +55,9 @@ async def get_account_deactivation_requests(
     Get all deactivation requests.
     Only admin users can access this endpoint.
     """
-    if current_user["role"] != settings.ROLE_ADMIN:
+    if current_user["active_role"] != settings.ROLE_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para ver las solicitudes de desactivación"
         )
     
@@ -61,9 +65,10 @@ async def get_account_deactivation_requests(
         requests = await get_deactivation_requests(status=status)
         return requests
     except Exception as e:
+        logger.exception(f"Error en get_account_deactivation_requests: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=400,
+            detail="Error al obtener las solicitudes de desactivación."
         )
 
 
@@ -76,9 +81,9 @@ async def get_deactivation_request_details(
     Get detailed information about a deactivation request.
     Only admin users can access this endpoint.
     """
-    if current_user["role"] != settings.ROLE_ADMIN:
+    if current_user["active_role"] != settings.ROLE_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para ver los detalles de la solicitud"
         )
     
@@ -88,7 +93,7 @@ async def get_deactivation_request_details(
         
         if not request:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Solicitud no encontrada"
             )
         
@@ -102,9 +107,10 @@ async def get_deactivation_request_details(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception(f"Error en get_deactivation_request_details: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=400,
+            detail="Error al obtener los detalles de la solicitud de desactivación."
         )
 
 
@@ -118,9 +124,9 @@ async def process_account_deactivation_request(
     Process a deactivation request.
     Only admin users can process deactivation requests.
     """
-    if current_user["role"] != settings.ROLE_ADMIN:
+    if current_user["active_role"] != settings.ROLE_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permisos para procesar solicitudes de desactivación"
         )
     
@@ -134,7 +140,7 @@ async def process_account_deactivation_request(
         
         if not processed_request:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Solicitud no encontrada"
             )
         
@@ -149,7 +155,8 @@ async def process_account_deactivation_request(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception(f"Error en process_account_deactivation_request: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=400,
+            detail="Error al procesar la solicitud de desactivación."
         )

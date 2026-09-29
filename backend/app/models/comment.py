@@ -26,7 +26,7 @@ class CommentBase:
             )
             return comments
         except Exception as e:
-            logger.error(f"Error getting comments from {table_name}: {e}")
+            logger.exception(f"Error getting comments from {table_name}: {e}")
             raise
     
     @staticmethod
@@ -54,7 +54,7 @@ class CommentBase:
             
             return comment_data
         except Exception as e:
-            logger.error(f"Error adding comment to {table_name}: {e}")
+            logger.exception(f"Error adding comment to {table_name}: {e}")
             raise
     
     @staticmethod
@@ -87,7 +87,7 @@ class CommentBase:
             
             return True
         except Exception as e:
-            logger.error(f"Error deleting comment from {table_name}: {e}")
+            logger.exception(f"Error deleting comment from {table_name}: {e}")
             raise
 
 

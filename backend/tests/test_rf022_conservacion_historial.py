@@ -334,3 +334,245 @@ class TestDatosNoSeAlteranTrasEliminacion:
         assert process_after["name"] == process_before["name"]
         assert process_after["status"] == process_before["status"]
         assert process_after["leader_id"] == process_before["leader_id"]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Solicitudes de Desactivación (deactivation requests)
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestSolicitudDesactivacion:
+    """Flujo completo de solicitudes de desactivación de cuenta."""
+
+    @pytest.mark.asyncio
+    async def test_crear_solicitud_desactivacion(self, client):
+        """Un usuario puede solicitar su propia desactivación."""
+        user = await create_test_user(
+            name="Usuario Solicitud", email="user@deacreq.com", roles="process_leader"
+        )
+        token = make_token(user, active_role="process_leader")
+
+        response = await client.post(
+            "/api/deactivation/request-deactivation",
+            json={"reason": "Motivo personal"},
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["user_id"] == user["id"]
+        assert data["status"] == "pending"
+        assert data["reason"] == "Motivo personal"
+
+    @pytest.mark.asyncio
+    async def test_solicitud_duplicada_retorna_existente(self, client):
+        """Si ya hay una solicitud pending, no se crea otra (test a nivel modelo)."""
+        from app.models.deactivation import create_deactivation_request
+
+        user = await create_test_user(
+            name="Usuario Dup", email="user@deacdup.com", roles="process_leader"
+        )
+
+        # Primera solicitud
+        first = await create_deactivation_request(user["id"], "Primer motivo")
+        first_id = first["id"]
+
+        # Segunda solicitud — debe devolver la misma (pending existente)
+        second = await create_deactivation_request(user["id"], "Segundo motivo")
+        assert second["id"] == first_id
+
+
+class TestListarSolicitudes:
+    """Solo admin puede listar solicitudes de desactivación."""
+
+    @pytest.mark.asyncio
+    async def test_admin_lista_solicitudes(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deaclist.com", roles="admin"
+        )
+        user = await create_test_user(
+            name="Usuario", email="user@deaclist.com", roles="process_leader"
+        )
+        # Crear solicitud directamente
+        from tests.conftest import _test_insert
+        await _test_insert(
+            "INSERT INTO user_deactivation_requests (user_id, reason) VALUES (?, ?)",
+            (user["id"], "Motivo de prueba"),
+        )
+
+        token = make_token(admin, active_role="admin")
+        response = await client.get(
+            "/api/deactivation/deactivation-requests",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+
+    @pytest.mark.asyncio
+    async def test_no_admin_no_lista_solicitudes(self, client):
+        leader = await create_test_user(
+            name="Líder", email="leader@deaclist.com", roles="process_leader"
+        )
+        token = make_token(leader, active_role="process_leader")
+
+        response = await client.get(
+            "/api/deactivation/deactivation-requests",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 403
+
+
+class TestDetalleSolicitud:
+    """Detalle de una solicitud de desactivación."""
+
+    @pytest.mark.asyncio
+    async def test_admin_ve_detalle_solicitud(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deacdet.com", roles="admin"
+        )
+        user = await create_test_user(
+            name="Usuario", email="user@deacdet.com", roles="process_leader"
+        )
+        from tests.conftest import _test_insert
+        req_id = await _test_insert(
+            "INSERT INTO user_deactivation_requests (user_id, reason) VALUES (?, ?)",
+            (user["id"], "Quiero desactivar"),
+        )
+
+        token = make_token(admin, active_role="admin")
+        response = await client.get(
+            f"/api/deactivation/deactivation-requests/{req_id}",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == req_id
+        assert data["user_id"] == user["id"]
+
+    @pytest.mark.asyncio
+    async def test_detalle_solicitud_no_encontrada(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deac404.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.get(
+            "/api/deactivation/deactivation-requests/99999",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_no_admin_no_ve_detalle(self, client):
+        leader = await create_test_user(
+            name="Líder", email="leader@deacdet2.com", roles="process_leader"
+        )
+        token = make_token(leader, active_role="process_leader")
+
+        response = await client.get(
+            "/api/deactivation/deactivation-requests/1",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 403
+
+
+class TestProcesarSolicitud:
+    """Aprobar y rechazar solicitudes de desactivación."""
+
+    @pytest.mark.asyncio
+    async def test_aprobar_solicitud(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deacappr.com", roles="admin"
+        )
+        user = await create_test_user(
+            name="Usuario", email="user@deacappr.com", roles="process_leader"
+        )
+        from tests.conftest import _test_insert
+        req_id = await _test_insert(
+            "INSERT INTO user_deactivation_requests (user_id, reason) VALUES (?, ?)",
+            (user["id"], "Aprobame"),
+        )
+
+        token = make_token(admin, active_role="admin")
+        response = await client.post(
+            f"/api/deactivation/deactivation-requests/{req_id}/process",
+            json={"approve": True},
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "approved"
+
+        # Verificar que el usuario fue desactivado
+        user_db = await _test_get_one(
+            "SELECT * FROM users WHERE id = ?", (user["id"],)
+        )
+        assert user_db["is_active"] == 0
+
+    @pytest.mark.asyncio
+    async def test_rechazar_solicitud(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deacrej.com", roles="admin"
+        )
+        user = await create_test_user(
+            name="Usuario", email="user@deacrej.com", roles="process_leader"
+        )
+        from tests.conftest import _test_insert
+        req_id = await _test_insert(
+            "INSERT INTO user_deactivation_requests (user_id, reason) VALUES (?, ?)",
+            (user["id"], "Rechazame"),
+        )
+
+        token = make_token(admin, active_role="admin")
+        response = await client.post(
+            f"/api/deactivation/deactivation-requests/{req_id}/process",
+            json={"approve": False},
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "rejected"
+
+        # El usuario NO debe haber sido desactivado
+        user_db = await _test_get_one(
+            "SELECT * FROM users WHERE id = ?", (user["id"],)
+        )
+        assert user_db["is_active"] == 1
+
+    @pytest.mark.asyncio
+    async def test_procesar_solicitud_no_encontrada(self, client):
+        admin = await create_test_user(
+            name="Admin", email="admin@deacpnf.com", roles="admin"
+        )
+        token = make_token(admin, active_role="admin")
+
+        response = await client.post(
+            "/api/deactivation/deactivation-requests/99999/process",
+            json={"approve": True},
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_no_admin_no_procesa_solicitud(self, client):
+        leader = await create_test_user(
+            name="Líder", email="leader@deacproc.com", roles="process_leader"
+        )
+        token = make_token(leader, active_role="process_leader")
+
+        response = await client.post(
+            "/api/deactivation/deactivation-requests/1/process",
+            json={"approve": True},
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 403

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 const RoleSwitcher = () => {
   const { user, switchRole, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState(null);
 
-  if (authLoading || !user || !user.roles || user.roles.length <= 1) {
+  if (authLoading || !user?.roles || user.roles.length <= 1) {
     // Don't show switcher if loading, no user, no roles array, or only one/zero roles
     return null;
   }

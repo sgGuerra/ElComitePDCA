@@ -33,6 +33,7 @@ __pycache__
 .venv/
 venv/
 env/
+# TEST documentacion
 test.md
 
 # Python (Backend)
@@ -77,3 +78,10 @@ ehthumbs.db
 .scannerwork/
 .sonarlint/
 coverage.xml
+.abacusai/
+# TEST documentacion
+pasoapaso.md
+
+# Docker
+*.tar
+docker-compose.override.yml

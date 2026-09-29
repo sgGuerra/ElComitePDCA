@@ -7,7 +7,7 @@ const userService = {
       // Check the response structure and return an array
       if (response.data && Array.isArray(response.data)) {
         return response.data;
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      } else if (Array.isArray(response.data?.data)) {
         return response.data.data;
       } else {
         console.warn('Unexpected response format from /api/users:', response.data);
@@ -73,7 +73,7 @@ const userService = {
     } catch (error) {
       console.error('Error in getProcessLeaders:', error);
       // Si el servidor responde con un error 422, podemos intentar obtener usuarios por rol manualmente
-      if (error.response && error.response.status === 422) {
+      if (error.response?.status === 422) {
         console.log('Intentando fallback para obtener líderes de procesos...');
         try {
           // Intentamos obtener los usuarios con roles de líder o admin directamente

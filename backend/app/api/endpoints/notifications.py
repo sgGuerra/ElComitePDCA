@@ -14,6 +14,8 @@ from app.schemas.notification import Notification
 
 router = APIRouter()
 
+NOTIFICATION_NOT_FOUND = "Notificación no encontrada"
+
 
 @router.get("/", response_model=List[Notification])
 async def read_notifications(
@@ -58,7 +60,7 @@ async def read_notification(
     if not notification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notificación no encontrada"
+            detail=NOTIFICATION_NOT_FOUND
         )
     
     # Check if notification belongs to current user
@@ -84,7 +86,7 @@ async def mark_as_read(
     if not notification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notificación no encontrada"
+            detail=NOTIFICATION_NOT_FOUND
         )
     
     # Check if notification belongs to current user
@@ -124,7 +126,7 @@ async def delete_notification_by_id(
     if not notification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notificación no encontrada"
+            detail=NOTIFICATION_NOT_FOUND
         )
     
     # Check if notification belongs to current user

@@ -23,7 +23,7 @@ class AuditInDB(AuditBase):
 
 
 class AuditOut(AuditInDB):
-    user_name: str = None
+    user_name: Optional[str] = None
 
 
 class AuditFilter(BaseModel):

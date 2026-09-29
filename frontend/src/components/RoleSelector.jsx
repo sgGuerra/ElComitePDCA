@@ -9,7 +9,7 @@ const RoleSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  if (!user || !user.roles || user.roles.length <= 1) {
+  if (!user?.roles || user.roles.length <= 1) {
     return null; // Don't show selector if user has only one role
   }
 

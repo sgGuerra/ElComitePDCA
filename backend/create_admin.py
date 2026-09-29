@@ -4,8 +4,12 @@ import aiosqlite
 import os
 
 async def create_admin():
-    # Use the SAME path the backend uses: ../database.sqlite (relative to backend/)
-    db_path = os.path.join(os.path.dirname(__file__), "..", "database.sqlite")
+    # Use DATABASE_URL if available (for docker), otherwise fallback to local path
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url and db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "")
+    else:
+        db_path = os.path.join(os.path.dirname(__file__), "..", "database.sqlite")
     db_path = os.path.abspath(db_path)
     
     email = "admin@elcomite.org"

@@ -30,7 +30,7 @@ apiClient.interceptors.response.use(
   response => response,
   error => {
     // Handle 401 Unauthorized errors (token expired or invalid)
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       console.error('Authentication error (401):', error.response.data);
       // Clear auth data from local storage
       localStorage.removeItem('token');
@@ -43,7 +43,7 @@ apiClient.interceptors.response.use(
     }
     
     // Handle 403 Forbidden errors (no permission for resource)
-    if (error.response && error.response.status === 403) {
+    if (error.response?.status === 403) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       console.error('Permission denied (403):', {
         url: error.config.url,

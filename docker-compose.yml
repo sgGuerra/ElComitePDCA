@@ -1,0 +1,61 @@
+# ============================================
+# Docker Compose - ElComitePDCA
+# Backend (FastAPI) + Frontend (React/Nginx)
+# ============================================
+
+services:
+  # -------------------------------------------
+  # Backend: API FastAPI + SQLite
+  # -------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: elcomitepdca-backend:latest
+    container_name: elcomitepdca-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////data/database.sqlite
+    volumes:
+      - sqlite-data:/data
+    networks:
+      - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # -------------------------------------------
+  # Frontend: React (Nginx)
+  # -------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: elcomitepdca-frontend:latest
+    container_name: elcomitepdca-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-net
+    restart: unless-stopped
+
+# -------------------------------------------
+# Volúmenes persistentes
+# -------------------------------------------
+volumes:
+  sqlite-data:
+    driver: local
+
+# -------------------------------------------
+# Redes
+# -------------------------------------------
+networks:
+  app-net:
+    driver: bridge

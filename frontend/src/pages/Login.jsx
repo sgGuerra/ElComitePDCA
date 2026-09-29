@@ -105,9 +105,9 @@ export default function Login() {
               </label>
             </div>
             <div className="text-sm">
-              <a href="#" className="font-medium text-primary hover:text-primary/80">
+              <button type="button" className="font-medium text-primary hover:text-primary/80">
                 ¿Olvidaste la contraseña?
-              </a>
+              </button>
             </div>
           </div>
 
@@ -128,6 +128,7 @@ export default function Login() {
               ) : 'Iniciar Sesión'}
             </button>
             <button
+              type="button"
               onClick={handleMicrosoftLogin}
               className="group relative w-full flex justify-center py-3 px-4 border border-primary text-sm font-medium rounded-md text-primary bg-white hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/80 disabled:opacity-70"
               disabled={loading}

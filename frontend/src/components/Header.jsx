@@ -1,7 +1,7 @@
 // frontend/src/components/Header.jsx
 
 import React, { useState, useEffect } from 'react';
-import { FaBell, FaCog, FaUserCircle, FaSignOutAlt, FaExchangeAlt } from 'react-icons/fa';
+import { FaBell, FaCog, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import notificationService from '../services/notificationService';

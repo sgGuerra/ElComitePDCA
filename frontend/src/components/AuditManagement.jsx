@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { FaFileAlt, FaPlus, FaHistory, FaDownload, FaFilePdf } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import auditService from '../services/auditService';
 import processService from '../services/processService';
@@ -19,7 +18,6 @@ const AuditManagement = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const { user } = useAuth();
   const { success, error: showError } = useToast();
 
   useEffect(() => {
@@ -57,10 +55,10 @@ const AuditManagement = () => {
     setLoading(true);
     try {
       await auditService.requestAudit(
-        parseInt(selectedProcess),
+        Number.parseInt(selectedProcess),
         title,
         description,
-        parseInt(selectedAuditor)
+        Number.parseInt(selectedAuditor)
       );
       
       success('Solicitud de auditoría enviada correctamente');

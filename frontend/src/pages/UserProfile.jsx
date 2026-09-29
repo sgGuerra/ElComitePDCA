@@ -10,7 +10,6 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import RequestDeactivationModal from '../components/RequestDeactivationModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import userService from '../services/userService';
 import actionService from '../services/actionService';
 
 const UserProfile = () => {
@@ -137,7 +136,7 @@ const UserProfile = () => {
     const errors = {};
     if (!userForm.name.trim()) errors.name = 'El nombre es obligatorio';
     if (!userForm.email.trim()) errors.email = 'El correo electrónico es obligatorio';
-    if (userForm.email && !/\S+@\S+\.\S+/.test(userForm.email)) {
+    if (userForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userForm.email)) {
       errors.email = 'El correo electrónico no es válido';
     }
     
@@ -406,8 +405,8 @@ const UserProfile = () => {
               <form onSubmit={handleUserProfileSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                    <input
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+        <input id="name"
                       type="text"
                       name="name"
                       value={userForm.name}
@@ -422,8 +421,8 @@ const UserProfile = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                    <input
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+        <input id="email"
                       type="email"
                       name="email"
                       value={userForm.email}
@@ -438,8 +437,8 @@ const UserProfile = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                    <input
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+        <input id="phone"
                       type="text"
                       name="phone"
                       value={userForm.phone}
@@ -449,8 +448,8 @@ const UserProfile = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
-                    <input
+                    <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+        <input id="position"
                       type="text"
                       name="position"
                       value={userForm.position}
@@ -460,8 +459,8 @@ const UserProfile = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
-                    <input
+                    <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+        <input id="department"
                       type="text"
                       name="department"
                       value={userForm.department}
@@ -472,8 +471,8 @@ const UserProfile = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
-                  <textarea
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
+        <textarea id="bio"
                     name="bio"
                     value={userForm.bio}
                     onChange={handleUserFormChange}
@@ -505,8 +504,9 @@ const UserProfile = () => {
               
               <form onSubmit={handlePasswordSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
                   <input
+                    id="currentPassword"
                     type="password"
                     name="currentPassword"
                     value={passwordForm.currentPassword}
@@ -521,8 +521,9 @@ const UserProfile = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
                   <input
+                    id="newPassword"
                     type="password"
                     name="newPassword"
                     value={passwordForm.newPassword}
@@ -537,8 +538,9 @@ const UserProfile = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
                   <input
+                    id="confirmPassword"
                     type="password"
                     name="confirmPassword"
                     value={passwordForm.confirmPassword}

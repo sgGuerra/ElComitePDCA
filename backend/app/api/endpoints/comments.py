@@ -25,9 +25,7 @@ async def list_process_comments(process_id: int, current_user: dict = Depends(ge
 
     # TODO: Add check for assigned leader if that logic is implemented for processes
 
-    if is_admin or is_creator:
-        can_view_comments = True
-    elif is_auditor and is_process_pending_audit:
+    if is_admin or is_creator or (is_auditor and is_process_pending_audit):
         # Auditor can view comments if the process is pending audit
         can_view_comments = True
     
@@ -51,9 +49,7 @@ async def add_process_comment(process_id: int, comment: str, current_user: dict 
 
     # TODO: Add check for assigned leader
 
-    if is_admin or is_creator:
-        can_add_comment = True
-    elif is_auditor and is_process_pending_audit:
+    if is_admin or is_creator or (is_auditor and is_process_pending_audit):
         # Auditor can add comments if the process is pending audit
         can_add_comment = True
 
