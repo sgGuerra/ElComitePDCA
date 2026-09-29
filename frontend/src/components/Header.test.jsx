@@ -1,10 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Header from './Header';
 import * as AuthContext from '../contexts/AuthContext';
 import notificationService from '../services/notificationService';
+import actionService from '../services/actionService';
 
 // Mock navigation
 const mockNavigate = vi.fn();
@@ -25,6 +26,13 @@ vi.mock('../services/notificationService', () => ({
     getUserNotifications: vi.fn(),
     markAsRead: vi.fn(),
     markAllAsRead: vi.fn(),
+  },
+}));
+
+// Mock actionService (usado por E18: navegar a la acción de una notificación)
+vi.mock('../services/actionService', () => ({
+  default: {
+    getActionById: vi.fn(),
   },
 }));
 
@@ -53,13 +61,13 @@ const renderHeader = (props = {}) => {
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Default mock user
     vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
       user: { id: 1, name: 'Admin User', role: 'admin', email: 'admin@test.com' },
       logout: mockLogout,
     });
-    
+
     notificationService.getUnreadCount.mockResolvedValue(0);
     notificationService.getUserNotifications.mockResolvedValue([]);
   });
@@ -73,11 +81,11 @@ describe('Header', () => {
   it('should call setActiveTab and navigate when clicking a tab', () => {
     const setActiveTab = vi.fn();
     renderHeader({ setActiveTab });
-    
+
     fireEvent.click(screen.getByText('Procesos'));
     expect(setActiveTab).toHaveBeenCalledWith('Procesos');
     expect(mockNavigate).toHaveBeenCalledWith('/procesos');
-    
+
     fireEvent.click(screen.getByText('Resumen'));
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
@@ -85,13 +93,13 @@ describe('Header', () => {
   it('should show Admin Panel button only for admin users', () => {
     const { unmount } = renderHeader();
     expect(screen.getByText('Admin Panel')).toBeInTheDocument();
-    
+
     // Change role to non-admin
     vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
       user: { id: 2, name: 'User', role: 'process_leader' },
       logout: mockLogout,
     });
-    
+
     // Unmount previous and re-render
     unmount();
     renderHeader();
@@ -103,7 +111,7 @@ describe('Header', () => {
       user: { id: 2, name: 'User', role: 'auditor' },
       logout: mockLogout,
     });
-    
+
     renderHeader();
     expect(screen.getByText('Panel de Auditor')).toBeInTheDocument();
   });
@@ -111,7 +119,7 @@ describe('Header', () => {
   it('should fetch and show unread notifications count on mount', async () => {
     notificationService.getUnreadCount.mockResolvedValue(5);
     renderHeader();
-    
+
     await waitFor(() => {
       expect(screen.getByText('5')).toBeInTheDocument();
     });
@@ -121,14 +129,14 @@ describe('Header', () => {
     notificationService.getUserNotifications.mockResolvedValue([
       { id: 1, title: 'Test Notif', message: 'Message', created_at: '2023-01-01', read: false }
     ]);
-    
+
     renderHeader();
-    
+
     // Find bell icon button
     const buttons = screen.getAllByRole('button');
     // Bell is typically before cog and user avatar
     fireEvent.click(buttons[buttons.length - 3]);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Notificaciones')).toBeInTheDocument();
       expect(screen.getByText('Test Notif')).toBeInTheDocument();
@@ -137,12 +145,12 @@ describe('Header', () => {
 
   it('should open user menu when avatar is clicked', () => {
     renderHeader();
-    
+
     const buttons = screen.getAllByRole('button');
     const avatarButton = buttons[buttons.length - 1]; // Last button is avatar
-    
+
     fireEvent.click(avatarButton);
-    
+
     expect(screen.getByText('Admin User')).toBeInTheDocument();
     expect(screen.getByText('admin@test.com')).toBeInTheDocument();
     expect(screen.getByText('Mi Perfil')).toBeInTheDocument();
@@ -151,14 +159,14 @@ describe('Header', () => {
 
   it('should call logout when Cerrar sesión is clicked', () => {
     renderHeader();
-    
+
     // Open menu
     const buttons = screen.getAllByRole('button');
     fireEvent.click(buttons[buttons.length - 1]);
-    
+
     // Click logout
     fireEvent.click(screen.getByText('Cerrar sesión'));
-    
+
     expect(mockLogout).toHaveBeenCalled();
   });
 
@@ -167,8 +175,81 @@ describe('Header', () => {
       user: { id: 1, name: 'Admin', role: 'admin', roles: ['admin', 'auditor'] },
       logout: mockLogout,
     });
-    
+
     renderHeader();
     expect(screen.getByTestId('role-selector')).toBeInTheDocument();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────
+// RF-11/RF-12 · Recordatorios y Notificaciones en Tiempo Real
+// (traído de la rama anterior origin/David, donde se implementaron estos fixes)
+//   - E17/E22: "Marcar todas como leídas" pide confirmación antes de aplicar
+//   - E18: hacer clic en una notificación navega a la acción relacionada
+//          antes de marcarla como leída (no se pierde sin revisar)
+// ──────────────────────────────────────────────────────────────────────────
+
+describe('Header - notificaciones', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+      user: { id: 1, name: 'Admin', role: 'admin', roles: ['admin'] },
+      logout: mockLogout,
+    });
+    notificationService.getUnreadCount.mockResolvedValue(1);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('E17/E22: pide confirmación antes de marcar todas como leídas, y no marca nada si se cancela', async () => {
+    // Valor por defecto del escenario roto: el usuario cancela el diálogo de confirmación
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    notificationService.getUserNotifications.mockResolvedValue([
+      { id: 1, title: 'N1', message: 'M1', read: false, created_at: new Date().toISOString() },
+    ]);
+
+    renderHeader();
+
+    // Abrir el dropdown haciendo clic en el ícono de campana (único botón sin texto en el header de notificaciones)
+    const bellIcon = document.querySelector('svg.text-xl').closest('button');
+    fireEvent.click(bellIcon);
+
+    const markAllButton = await screen.findByText('Marcar todas como leídas');
+    fireEvent.click(markAllButton);
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(notificationService.markAllAsRead).not.toHaveBeenCalled();
+  });
+
+  it('E18: al hacer clic en una notificación de acción, navega a la acción antes de marcarla como leída', async () => {
+    // Valor por defecto del escenario roto: una notificación sin leer ligada a una acción
+    notificationService.getUserNotifications.mockResolvedValue([
+      {
+        id: 5,
+        title: 'Acción vencida',
+        message: 'La acción X venció',
+        read: false,
+        related_type: 'action',
+        related_id: 42,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    actionService.getActionById.mockResolvedValue({ id: 42, process_id: 7 });
+
+    renderHeader();
+
+    const bellIcon = document.querySelector('svg.text-xl').closest('button');
+    fireEvent.click(bellIcon);
+
+    const notificationTitle = await screen.findByText('Acción vencida');
+    fireEvent.click(notificationTitle);
+
+    await waitFor(() => {
+      expect(actionService.getActionById).toHaveBeenCalledWith(42);
+      expect(mockNavigate).toHaveBeenCalledWith('/procesos/7/acciones/42');
+      expect(notificationService.markAsRead).toHaveBeenCalledWith(5);
+    });
   });
 });

@@ -135,6 +135,27 @@ async def delete_notification(notification_id: int) -> bool:
         return False
 
 
+async def has_unread_notification(
+    user_id: int,
+    title: str,
+    related_type: str,
+    related_id: int
+) -> bool:
+    """Check if an unread notification with the same title/related entity already exists."""
+    try:
+        existing = await get_one(
+            """
+            SELECT id FROM notifications
+            WHERE user_id = ? AND title = ? AND related_type = ? AND related_id = ? AND read = 0
+            """,
+            (user_id, title, related_type, related_id)
+        )
+        return existing is not None
+    except Exception as e:
+        logger.error(f"Error checking for unread notification: {str(e)}")
+        return False
+
+
 async def get_unread_notification_count(user_id: int) -> int:
     """Get count of unread notifications for a user."""
     try:
