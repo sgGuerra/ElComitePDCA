@@ -12,6 +12,7 @@ Pruebas unitarias para las condiciones y escenarios de prueba:
 
 import pytest
 import pytest_asyncio
+from hamcrest import assert_that, equal_to, has_length, is_
 
 from tests.conftest import (
     create_test_user,
@@ -127,3 +128,54 @@ class TestEvaluacionConLideresYMetricas:
         emails = [l["email"] for l in leaders]
         assert "lider_act@eval.com" in emails
         assert "lider_inact@eval.com" not in emails
+
+    @pytest.mark.asyncio
+    async def test_lideres_disponibles_con_fluent_assertions(self, client):
+        """Mismo escenario de arriba, pero usando Fluent Assertions (hamcrest)
+        en vez de assert normal, para que las pruebas se lean como una frase."""
+        # Arrange
+        admin = await create_test_user(name="Admin Fluent", email="fluent@eval.com", roles="admin")
+        await create_test_user(name="Líder Activo 2", email="lider_act2@eval.com", roles="process_leader", is_active=1)
+        token = make_token(admin, active_role="admin")
+
+        # Act
+        response = await client.get(
+            "/api/assignments/available-leaders",
+            headers=auth_headers(token),
+        )
+
+        # Assert
+        assert_that(response.status_code, equal_to(200))
+        leaders = response.json()
+        emails = [l["email"] for l in leaders]
+        assert_that(emails, has_length(1))
+        assert_that("lider_act2@eval.com" in emails, is_(True))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prueba de regresión: router de assignments sin registrar
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRegresionRouterAsignacionesRegistrado:
+    """Al actualizar a la nueva versión de main, el archivo assignments.py
+    existía pero nadie lo había agregado a api_router en routes.py, así que
+    todos los endpoints de /api/assignments devolvían 404. Esta prueba se
+    queda para que, si alguien vuelve a olvidar registrar el router en un
+    futuro cambio, la suite falle en vez de fallar en producción."""
+
+    @pytest.mark.asyncio
+    async def test_endpoint_de_asignaciones_esta_registrado_y_responde(self, client):
+        # Arrange
+        admin = await create_test_user(name="Admin Regresion", email="regresion@eval.com", roles="admin")
+        process = await create_test_process(name="Proceso Regresion", created_by=admin["id"])
+        token = make_token(admin, active_role="admin")
+
+        # Act
+        response = await client.get(
+            f"/api/assignments/process/{process['id']}/leaders",
+            headers=auth_headers(token),
+        )
+
+        # Assert
+        assert_that(response.status_code, equal_to(200))
+        assert_that(response.json(), is_(list))

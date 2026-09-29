@@ -13,6 +13,7 @@ Pruebas unitarias para las condiciones y escenarios de prueba:
 import pytest
 import pytest_asyncio
 from datetime import datetime, timedelta
+from hamcrest import assert_that, equal_to, has_length
 
 from tests.conftest import (
     create_test_user,
@@ -145,3 +146,51 @@ class TestOperacionesDeRecordatorios:
         assert response.status_code == 200
         deadlines = response.json()
         assert isinstance(deadlines, list)
+
+    @pytest.mark.asyncio
+    async def test_marcar_todas_como_leidas_con_fluent_assertions(self, client):
+        """Igual que test_marcar_todas_solo_afecta_al_usuario_actual pero
+        escrito con Fluent Assertions (hamcrest)."""
+        # Arrange
+        user_a = await create_test_user(name="Líder Fluent A", email="lider_fluent_a@test.com", roles="process_leader")
+        user_b = await create_test_user(name="Líder Fluent B", email="lider_fluent_b@test.com", roles="process_leader")
+        await create_notification(user_id=user_a["id"], title="Notif A", message="Mensaje A")
+        await create_notification(user_id=user_b["id"], title="Notif B", message="Mensaje B")
+
+        # Act
+        token_a = make_token(user_a, active_role="process_leader")
+        resp_a = await client.put("/api/notifications/read-all", headers=auth_headers(token_a))
+        token_b = make_token(user_b, active_role="process_leader")
+        count_b = await client.get("/api/notifications/count", headers=auth_headers(token_b))
+
+        # Assert
+        assert_that(resp_a.status_code, equal_to(200))
+        assert_that(count_b.json()["count"], equal_to(1))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prueba de regresión: aislamiento de notificaciones tras el merge de main
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRegresionAislamientoNotificacionesTrasMergeMain:
+    """El módulo de notificaciones también recibió cambios en el merge de la
+    nueva versión de main. Esta prueba deja fijado que dos usuarios distintos
+    siguen viendo únicamente sus propias notificaciones (no las del otro),
+    que es la base de seguridad de todo RF-11."""
+
+    @pytest.mark.asyncio
+    async def test_cada_usuario_solo_ve_sus_propias_notificaciones(self, client):
+        # Arrange
+        user_a = await create_test_user(name="Líder Regresion A", email="regresion_rf11_a@test.com", roles="process_leader")
+        user_b = await create_test_user(name="Líder Regresion B", email="regresion_rf11_b@test.com", roles="process_leader")
+        await create_notification(user_id=user_a["id"], title="Recordatorio A1", message="Mensaje A1")
+        await create_notification(user_id=user_a["id"], title="Recordatorio A2", message="Mensaje A2")
+        await create_notification(user_id=user_b["id"], title="Recordatorio B1", message="Mensaje B1")
+
+        # Act
+        token_a = make_token(user_a, active_role="process_leader")
+        resp_a = await client.get("/api/notifications/", headers=auth_headers(token_a))
+
+        # Assert
+        assert_that(resp_a.status_code, equal_to(200))
+        assert_that(resp_a.json(), has_length(2))

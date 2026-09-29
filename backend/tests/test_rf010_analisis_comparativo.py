@@ -12,6 +12,7 @@ Pruebas unitarias para las condiciones y escenarios de prueba:
 
 import pytest
 import pytest_asyncio
+from hamcrest import assert_that, equal_to, close_to
 
 from tests.conftest import (
     create_test_user,
@@ -111,3 +112,56 @@ class TestFiltrosRangoFecha:
         )
 
         assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_date_range_valido_con_fluent_assertions(self, client):
+        """Igual que test_date_range_validos_retornan_200 pero con Fluent
+        Assertions (hamcrest), para leerse como una frase."""
+        # Arrange
+        admin = await create_test_user(name="Admin Fluent Rango", email="fluent_rango@test.com", roles="admin")
+        token = make_token(admin, active_role="admin")
+
+        # Act
+        response = await client.get(
+            "/api/statistics/actions-over-time?date_range=month",
+            headers=auth_headers(token),
+        )
+
+        # Assert
+        assert_that(response.status_code, equal_to(200))
+        assert_that(isinstance(response.json(), list), equal_to(True))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prueba de regresión: tasa de completitud correcta tras el merge de main
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRegresionCalculoTasaCompletitudTrasMergeMain:
+    """statistics.py cambió bastante al actualizar a la nueva versión de main.
+    Esta prueba deja fijado que el cálculo de tasa de completitud del análisis
+    comparativo (RF-10) sigue siendo correcto después de ese refactor."""
+
+    @pytest.mark.asyncio
+    async def test_tasa_completitud_sigue_calculando_bien_tras_el_merge(self, client):
+        # Arrange
+        admin = await create_test_user(name="Admin Regresion RF10", email="admin_regresion_rf10@test.com", roles="admin")
+        token = make_token(admin, active_role="admin")
+        process = await create_test_process(name="Proceso Regresion RF10", created_by=admin["id"])
+
+        # 3 acciones completadas y 1 pendiente => tasa esperada 75%
+        await create_test_action(process["id"], admin["id"], admin["id"], name="A1", status="completed")
+        await create_test_action(process["id"], admin["id"], admin["id"], name="A2", status="completed")
+        await create_test_action(process["id"], admin["id"], admin["id"], name="A3", status="completed")
+        await create_test_action(process["id"], admin["id"], admin["id"], name="A4", status="pending")
+
+        # Act
+        response = await client.get(
+            f"/api/processes/{process['id']}/statistics",
+            headers=auth_headers(token),
+        )
+
+        # Assert
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(data["total_actions"], equal_to(4))
+        assert_that(data["completion_rate"], close_to(75.0, 0.01))

@@ -14,6 +14,7 @@ Pruebas unitarias para las condiciones y escenarios de prueba:
 
 import pytest
 import pytest_asyncio
+from hamcrest import assert_that, equal_to, has_length
 
 from tests.conftest import (
     create_test_user,
@@ -188,6 +189,72 @@ class TestNotificacionAlCancelar:
             if n["title"] == "Acción cancelada" and n["related_id"] == action["id"]
         ]
         assert len(canceled_notifs) == 1
+
+    @pytest.mark.asyncio
+    async def test_cancelar_accion_notifica_al_creador_con_fluent_assertions(self, client):
+        """Mismo caso de arriba (E23) pero con Fluent Assertions (hamcrest)."""
+        # Arrange
+        admin = await create_test_user(name="Admin Cancel Fluent", email="admin_cancel_fluent@test.com", roles="admin")
+        leader = await create_test_user(name="Líder Cancel Fluent", email="leader_cancel_fluent@test.com", roles="process_leader")
+        process = await create_test_process(name="Proceso Cancel Fluent", created_by=admin["id"], leader_id=leader["id"])
+        action = await create_test_action(
+            process_id=process["id"],
+            leader_id=leader["id"],
+            created_by=admin["id"],
+            name="Acción a Cancelar Fluent",
+            status="in_progress",
+        )
+        token_leader = make_token(leader, active_role="process_leader")
+
+        # Act
+        response = await client.put(
+            f"/api/actions/{action['id']}",
+            json={"status": "canceled"},
+            headers=auth_headers(token_leader),
+        )
+        notifications = await get_notifications_by_user(admin["id"])
+        canceled_notifs = [n for n in notifications if n["title"] == "Acción cancelada"]
+
+        # Assert
+        assert_that(response.status_code, equal_to(200))
+        assert_that(canceled_notifs, has_length(1))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prueba de regresión: cancelar dos veces tampoco duplica la notificación
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRegresionCancelarNoDuplicaTampoco:
+    """El fix de E21 (no duplicar notificaciones) se hizo con una función
+    genérica (_create_notification_once) que también debería aplicar al
+    caso de cancelación, no solo al de completado. Esta prueba deja fijado
+    ese comportamiento para que no se rompa en el futuro."""
+
+    @pytest.mark.asyncio
+    async def test_cancelar_dos_veces_no_duplica_notificacion(self, client):
+        # Arrange
+        admin = await create_test_user(name="Admin Cancel Regresion", email="admin_cancel_regresion@test.com", roles="admin")
+        leader = await create_test_user(name="Líder Cancel Regresion", email="leader_cancel_regresion@test.com", roles="process_leader")
+        process = await create_test_process(name="Proceso Cancel Regresion", created_by=admin["id"], leader_id=leader["id"])
+        action = await create_test_action(
+            process_id=process["id"],
+            leader_id=leader["id"],
+            created_by=admin["id"],
+            name="Acción Cancel Regresion",
+            status="in_progress",
+        )
+        token_leader = make_token(leader, active_role="process_leader")
+
+        # Act: cancelar, volver a activar, y cancelar de nuevo
+        await client.put(f"/api/actions/{action['id']}", json={"status": "canceled"}, headers=auth_headers(token_leader))
+        await client.put(f"/api/actions/{action['id']}", json={"status": "in_progress"}, headers=auth_headers(token_leader))
+        await client.put(f"/api/actions/{action['id']}", json={"status": "canceled"}, headers=auth_headers(token_leader))
+
+        notifications = await get_notifications_by_user(admin["id"])
+        canceled_notifs = [n for n in notifications if n["title"] == "Acción cancelada"]
+
+        # Assert
+        assert_that(canceled_notifs, has_length(1))
 
 
 # ──────────────────────────────────────────────────────────────────────────────

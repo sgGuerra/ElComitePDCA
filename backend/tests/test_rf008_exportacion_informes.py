@@ -12,6 +12,7 @@ Pruebas unitarias para las condiciones y escenarios de prueba:
 
 import pytest
 import pytest_asyncio
+from hamcrest import assert_that, equal_to, greater_than, contains_string
 
 from tests.conftest import (
     create_test_user,
@@ -121,3 +122,69 @@ class TestPermisosAccesoInformes:
         )
         assert get_resp.status_code == 403
         assert "permisos" in get_resp.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_auditor_crea_y_descarga_su_propio_informe_con_fluent_assertions(self, client):
+        """Camino feliz de RF-08, escrito con Fluent Assertions (hamcrest)."""
+        # Arrange
+        auditor = await create_test_user(name="Auditor Propio", email="aud_propio@test.com", roles="auditor")
+        admin = await create_test_user(name="Admin Propio", email="admin_propio@test.com", roles="admin")
+        process = await create_test_process(name="Proceso Propio", created_by=admin["id"])
+        token = make_token(auditor, active_role="auditor")
+
+        # Act
+        create_resp = await client.post(
+            "/api/audit/reports",
+            json={
+                "process_id": process["id"],
+                "title": "Informe de Auditoría Propio",
+                "content": "Contenido del informe",
+                "status": "draft",
+            },
+            headers=auth_headers(token),
+        )
+        report_id = create_resp.json()["id"]
+        get_resp = await client.get(
+            f"/api/audit/reports/{report_id}",
+            headers=auth_headers(token),
+        )
+
+        # Assert
+        assert_that(create_resp.status_code, equal_to(200))
+        assert_that(get_resp.status_code, equal_to(200))
+        assert_that(get_resp.json()["title"], contains_string("Auditoría"))
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Prueba de regresión: exportación de informes sigue funcionando tras el merge
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRegresionExportacionTrasMergeMain:
+    """audit.py cambió bastante cuando se actualizó a la nueva versión de main
+    (permisos, endpoints de reportes, etc.). Esta prueba deja fijado que el
+    flujo completo de RF-08 (crear informe -> consultarlo) sigue funcionando
+    después de ese merge, para detectar si un cambio futuro lo rompe."""
+
+    @pytest.mark.asyncio
+    async def test_flujo_completo_crear_y_consultar_informe_sigue_funcionando(self, client):
+        # Arrange
+        auditor = await create_test_user(name="Auditor Regresion", email="aud_regresion@test.com", roles="auditor")
+        admin = await create_test_user(name="Admin Regresion", email="admin_regresion_rf08@test.com", roles="admin")
+        process = await create_test_process(name="Proceso Regresion RF08", created_by=admin["id"])
+        token = make_token(auditor, active_role="auditor")
+
+        # Act
+        create_resp = await client.post(
+            "/api/audit/reports",
+            json={
+                "process_id": process["id"],
+                "title": "Informe Regresión",
+                "content": "Contenido de prueba de regresión",
+                "status": "draft",
+            },
+            headers=auth_headers(token),
+        )
+
+        # Assert
+        assert_that(create_resp.status_code, equal_to(200))
+        assert_that(create_resp.json()["id"], greater_than(0))
