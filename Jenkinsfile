@@ -62,8 +62,10 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         npm ci
-                        npm run test:cov
                     '''
+                    timeout(time: 15, unit: 'MINUTES') {
+                        sh 'npm run test:cov -- --maxWorkers=2 --minWorkers=1'
+                    }
                 }
             }
             post {
