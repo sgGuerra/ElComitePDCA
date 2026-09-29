@@ -16,15 +16,15 @@ vi.mock('recharts', () => {
         {children}
       </div>
     ),
-    PieChart: () => <div data-testid="pie-chart" />,
-    Pie: () => <div />,
+    PieChart: ({ children }) => <div data-testid="pie-chart">{children}</div>,
+    Pie: ({ data }) => <div data-testid="pie-series" data-series={JSON.stringify(data)} />,
     Cell: () => <div />,
-    BarChart: () => <div data-testid="bar-chart" />,
+    BarChart: ({ data }) => <div data-testid="bar-chart" data-series={JSON.stringify(data)} />,
     Bar: () => <div />,
     XAxis: () => <div />,
     YAxis: () => <div />,
     Tooltip: () => <div />,
-    LineChart: () => <div data-testid="line-chart" />,
+    LineChart: ({ data }) => <div data-testid="line-chart" data-series={JSON.stringify(data)} />,
     Line: () => <div />,
     CartesianGrid: () => <div />,
     Legend: () => <div />
@@ -82,6 +82,7 @@ const renderComponent = () => {
       <MemoryRouter initialEntries={['/procesos/1/estadisticas']}>
         <Routes>
           <Route path="/procesos/:processId/estadisticas" element={<ProcessStatistics />} />
+          <Route path="/procesos" element={<div>Lista de procesos</div>} />
         </Routes>
       </MemoryRouter>
     </ToastProvider>
@@ -129,22 +130,16 @@ describe('ProcessStatistics', () => {
   });
 
   it('should update date range when filter buttons are clicked', async () => {
+    // Arrange: load the page, then isolate calls made by the filter action.
     renderComponent();
-    
-    await waitFor(() => expect(screen.getByText('Process 1')).toBeInTheDocument());
-    
+    await screen.findByText('Process 1');
     vi.clearAllMocks();
-    
-    // Default mock setup for re-fetch
-    processService.getProcessById.mockResolvedValue(mockProcess);
-    processService.getProcessStatistics.mockResolvedValue(mockStatistics);
-    statisticsService.getActionsByStatus.mockResolvedValue([]);
-    statisticsService.getActionsByType.mockResolvedValue([]);
-    statisticsService.getActionsOverTime.mockResolvedValue([]);
-    
+
+    // Act: select a different date range.
     const yearButton = screen.getByRole('button', { name: 'Año' });
     fireEvent.click(yearButton);
-    
+
+    // Assert: the request uses the selected range.
     await waitFor(() => {
       expect(statisticsService.getActionsByStatus).toHaveBeenCalledWith({ processId: '1', dateRange: 'year' });
     });
@@ -158,5 +153,84 @@ describe('ProcessStatistics', () => {
     await waitFor(() => {
       expect(screen.getAllByText('Error al cargar las estadísticas del proceso').length).toBeGreaterThan(0);
     });
+  });
+
+  it('handles zero totals, missing dates, and low-performance recommendations', async () => {
+    processService.getProcessStatistics.mockResolvedValue({
+      totalActions: 0,
+      completedActions: 0,
+      avgCompletionDays: 11,
+      lastActivityDate: null,
+      overdueActions: 1,
+      mainPriority: 'custom_priority',
+      effectivenessRate: 0,
+    });
+    statisticsService.getActionsByStatus.mockResolvedValue([]);
+    statisticsService.getActionsByType.mockResolvedValue([]);
+    statisticsService.getActionsOverTime.mockResolvedValue([]);
+
+    renderComponent();
+
+    await screen.findByText('Process 1');
+
+    expect(screen.getAllByText('0%')).toHaveLength(2);
+    expect(screen.getAllByText('11 días')).toHaveLength(2);
+    expect(screen.getByText('El proceso "Process 1" muestra un rendimiento global bajo con una tasa de completado del 0%.')).toBeInTheDocument();
+    expect(screen.getByText('Hay 1 acción vencida. Priorizar su resolución para evitar retrasos adicionales.')).toBeInTheDocument();
+    expect(screen.getByText('La tasa de completado es baja. Revisar las acciones pendientes y asignar recursos adicionales.')).toBeInTheDocument();
+    expect(screen.getByText('El tiempo promedio de resolución es alto. Analizar posibles cuellos de botella en el proceso.')).toBeInTheDocument();
+    expect(screen.getByText('custom_priority')).toBeInTheDocument();
+  });
+
+  it('handles known and unknown chart categories and defaults a missing priority to medium', async () => {
+    statisticsService.getActionsByStatus.mockResolvedValue([
+      { status: 'pending', count: 1 },
+      { status: 'in_progress', count: 2 },
+      { status: 'completed', count: 3 },
+      { status: 'canceled', count: 4 },
+      { status: 'overdue', count: 5 },
+      { status: 'custom_status', count: 6 },
+    ]);
+    statisticsService.getActionsByType.mockResolvedValue([
+      { type: 'high', count: 1 },
+      { type: 'medium', count: 2 },
+      { type: 'low', count: 3 },
+      { type: 'custom_priority', count: 4 },
+      { count: 5 },
+    ]);
+
+    renderComponent();
+
+    await screen.findByText('Process 1');
+    const statusSeries = JSON.parse(screen.getByTestId('bar-chart').dataset.series);
+    expect(statusSeries.map(({ name, color }) => [name, color])).toEqual([
+      ['Pendiente', '#EAB308'],
+      ['En progreso', '#3B82F6'],
+      ['Completada', '#22C55E'],
+      ['Cancelada', '#EF4444'],
+      ['Vencida', '#F97316'],
+      ['custom_status', '#6B7280'],
+    ]);
+
+    expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
+    const prioritySeries = JSON.parse(screen.getByTestId('pie-series').dataset.series);
+    expect(prioritySeries.map(({ name, color }) => [name, color])).toEqual([
+      ['Alta', '#EF4444'],
+      ['Media', '#3B82F6'],
+      ['Baja', '#22C55E'],
+      ['custom_priority', '#6B7280'],
+      ['Media', '#3B82F6'],
+    ]);
+  });
+
+  it('returns to the process list from the error state', async () => {
+    processService.getProcessById.mockRejectedValue(new Error('Fetch error'));
+
+    renderComponent();
+
+    const backButton = await screen.findByRole('button', { name: 'Volver a la lista' });
+    fireEvent.click(backButton);
+
+    expect(await screen.findByText('Lista de procesos')).toBeInTheDocument();
   });
 });

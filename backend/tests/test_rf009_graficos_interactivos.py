@@ -13,22 +13,24 @@ Pruebas unitarias para las condiciones de prueba:
 """
 
 import time
+from datetime import date, timedelta
 
 import pytest
 import pytest_asyncio
+from app.models import statistics as statistics_model
 
 from tests.conftest import (
-    create_test_user,
-    create_test_process,
-    create_test_action,
-    make_token,
     auth_headers,
+    create_test_action,
+    create_test_process,
+    create_test_user,
+    make_token,
 )
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Gráficos se renderizan (endpoints responden OK)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestGraficosSeRenderizan:
     """Los endpoints de estadísticas devuelven respuestas exitosas (200)."""
@@ -108,6 +110,7 @@ class TestGraficosSeRenderizan:
 # Datos corresponden al proceso del líder
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestDatosCorrespondenAlProceso:
     """Los datos filtrados por process_id corresponden al proceso correcto."""
 
@@ -120,12 +123,18 @@ class TestDatosCorrespondenAlProceso:
             name="Proceso Datos", created_by=admin["id"], leader_id=admin["id"]
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="Acción Completada", status="completed",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="Acción Completada",
+            status="completed",
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="Acción Pendiente", status="pending",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="Acción Pendiente",
+            status="pending",
         )
         token = make_token(admin, active_role="admin")
 
@@ -152,13 +161,19 @@ class TestDatosCorrespondenAlProceso:
         # Crear 3 acciones completadas y 2 pendientes
         for i in range(3):
             await create_test_action(
-                process_id=process["id"], leader_id=admin["id"],
-                created_by=admin["id"], name=f"Completada {i}", status="completed",
+                process_id=process["id"],
+                leader_id=admin["id"],
+                created_by=admin["id"],
+                name=f"Completada {i}",
+                status="completed",
             )
         for i in range(2):
             await create_test_action(
-                process_id=process["id"], leader_id=admin["id"],
-                created_by=admin["id"], name=f"Pendiente {i}", status="pending",
+                process_id=process["id"],
+                leader_id=admin["id"],
+                created_by=admin["id"],
+                name=f"Pendiente {i}",
+                status="pending",
             )
         token = make_token(admin, active_role="admin")
 
@@ -177,6 +192,7 @@ class TestDatosCorrespondenAlProceso:
 # ──────────────────────────────────────────────────────────────────────────────
 # Mensaje de "sin datos" o gráfico vacío sin error
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestSinDatosSinError:
     """Cuando no hay datos, los endpoints devuelven respuestas vacías sin error."""
@@ -230,6 +246,7 @@ class TestSinDatosSinError:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
+        assert len(data) >= 1
 
     @pytest.mark.asyncio
     async def test_completion_rate_sin_datos_retorna_cero(self, client):
@@ -250,6 +267,7 @@ class TestSinDatosSinError:
 # ──────────────────────────────────────────────────────────────────────────────
 # Filtro por fecha funciona
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestFiltroPorFecha:
     """Los filtros de rango de fecha funcionan correctamente."""
@@ -347,6 +365,7 @@ class TestFiltroPorFecha:
 # Hover o clic muestra detalle correcto
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestDetalleCorrectoDatos:
     """Los endpoints proporcionan datos suficientes para mostrar detalles
     al hacer hover o clic en un gráfico (incluir acciones en respuesta)."""
@@ -360,8 +379,11 @@ class TestDetalleCorrectoDatos:
             name="Proceso Detail", created_by=admin["id"], leader_id=admin["id"]
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="Acción de detalle", status="pending",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="Acción de detalle",
+            status="pending",
         )
         token = make_token(admin, active_role="admin")
 
@@ -388,8 +410,10 @@ class TestDetalleCorrectoDatos:
             name="Proceso Last", created_by=admin["id"], leader_id=admin["id"]
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="Última acción creada",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="Última acción creada",
         )
         token = make_token(admin, active_role="admin")
 
@@ -408,6 +432,7 @@ class TestDetalleCorrectoDatos:
 # Datos del gráfico solo pertenecen al proceso del líder autenticado
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestDatosSoloDelProcesoLider:
     """Cuando se filtra por proceso, los datos solo incluyen ese proceso."""
 
@@ -425,13 +450,17 @@ class TestDatosSoloDelProcesoLider:
         # 2 acciones en A, 5 en B
         for _ in range(2):
             await create_test_action(
-                process_id=proc_a["id"], leader_id=admin["id"],
-                created_by=admin["id"], status="pending",
+                process_id=proc_a["id"],
+                leader_id=admin["id"],
+                created_by=admin["id"],
+                status="pending",
             )
         for _ in range(5):
             await create_test_action(
-                process_id=proc_b["id"], leader_id=admin["id"],
-                created_by=admin["id"], status="pending",
+                process_id=proc_b["id"],
+                leader_id=admin["id"],
+                created_by=admin["id"],
+                status="pending",
             )
         token = make_token(admin, active_role="admin")
 
@@ -457,12 +486,16 @@ class TestDatosSoloDelProcesoLider:
         )
         # 1 completada, 1 pendiente = 50%
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], status="completed",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            status="completed",
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], status="pending",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            status="pending",
         )
         token = make_token(admin, active_role="admin")
 
@@ -479,6 +512,7 @@ class TestDatosSoloDelProcesoLider:
 # ──────────────────────────────────────────────────────────────────────────────
 # Carga en menos de 5 segundos (RFN-002)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestRendimientoCarga:
     """Todos los endpoints de estadísticas deben responder en < 5 s."""
@@ -573,6 +607,7 @@ class TestRendimientoCarga:
 # Upcoming Deadlines
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestUpcomingDeadlines:
     """Cobertura del endpoint upcoming-deadlines y su modelo."""
 
@@ -585,9 +620,12 @@ class TestUpcomingDeadlines:
             name="Proceso Deadlines", created_by=admin["id"], leader_id=admin["id"]
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="Con fecha límite",
-            status="pending", target_date="2099-12-31",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="Con fecha límite",
+            status="pending",
+            target_date="2099-12-31",
         )
         token = make_token(admin, active_role="admin")
 
@@ -612,14 +650,20 @@ class TestUpcomingDeadlines:
             name="Proceso B DL", created_by=admin["id"], leader_id=admin["id"]
         )
         await create_test_action(
-            process_id=proc_a["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="DL en A",
-            status="pending", target_date="2099-06-15",
+            process_id=proc_a["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="DL en A",
+            status="pending",
+            target_date="2099-06-15",
         )
         await create_test_action(
-            process_id=proc_b["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="DL en B",
-            status="pending", target_date="2099-06-15",
+            process_id=proc_b["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="DL en B",
+            status="pending",
+            target_date="2099-06-15",
         )
         token = make_token(admin, active_role="admin")
 
@@ -634,10 +678,48 @@ class TestUpcomingDeadlines:
         for action in data:
             assert action["process_id"] == proc_a["id"]
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("date_range", "expected_count"),
+        [("week", 1), ("month", 2), ("quarter", 3), ("year", 4)],
+    )
+    async def test_upcoming_deadlines_respeta_rango_temporal_por_proceso(
+        self, client, date_range, expected_count
+    ):
+        admin = await create_test_user(
+            name="Admin", email=f"admin@deadline-{date_range}.com", roles="admin"
+        )
+        process = await create_test_process(
+            name="Proceso con vencimientos",
+            created_by=admin["id"],
+            leader_id=admin["id"],
+        )
+
+        for days in (5, 20, 60, 200):
+            await create_test_action(
+                process_id=process["id"],
+                leader_id=admin["id"],
+                created_by=admin["id"],
+                status="pending",
+                target_date=(date.today() + timedelta(days=days)).isoformat(),
+            )
+
+        token = make_token(admin, active_role="admin")
+        response = await client.get(
+            f"/api/statistics/upcoming-deadlines?process_id={process['id']}&date_range={date_range}",
+            headers=auth_headers(token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == expected_count
+        assert all(action["process_id"] == process["id"] for action in data)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Actions Over Time – filtros adicionales
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestActionsOverTimeFiltrosAdicionales:
     """Cubrir ramas quarter, year y filtro por process_id."""
@@ -657,7 +739,6 @@ class TestActionsOverTimeFiltrosAdicionales:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) >= 1
 
     @pytest.mark.asyncio
     async def test_actions_over_time_filtro_anio(self, client):
@@ -685,8 +766,10 @@ class TestActionsOverTimeFiltrosAdicionales:
             name="Proceso OT", created_by=admin["id"], leader_id=admin["id"]
         )
         await create_test_action(
-            process_id=process["id"], leader_id=admin["id"],
-            created_by=admin["id"], name="Acción OT",
+            process_id=process["id"],
+            leader_id=admin["id"],
+            created_by=admin["id"],
+            name="Acción OT",
         )
         token = make_token(admin, active_role="admin")
 
@@ -703,6 +786,7 @@ class TestActionsOverTimeFiltrosAdicionales:
 # ──────────────────────────────────────────────────────────────────────────────
 # Completion Rate – filtros adicionales
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestCompletionRateFiltrosAdicionales:
     """Cubrir ramas week, quarter y year en completion-rate."""
@@ -757,6 +841,7 @@ class TestCompletionRateFiltrosAdicionales:
 # Process Statistics – include_zero_counts
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestProcessStatisticsZeroCounts:
     """Cubrir la rama include_zero_counts en get_process_statistics."""
 
@@ -780,3 +865,46 @@ class TestProcessStatisticsZeroCounts:
         data = response.json()
         # Debe incluir el proceso con 0 acciones
         assert any(p["total_actions"] == 0 for p in data)
+
+
+class TestFallbacksModeloEstadisticas:
+    """Los fallos de persistencia no deben filtrar excepciones al consumidor."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("statistics_function", "database_function", "expected"),
+        [
+            (
+                statistics_model.get_dashboard_statistics,
+                "get_one",
+                {
+                    "total_actions": 0,
+                    "completed_actions": 0,
+                    "pending_actions": 0,
+                    "overdue_actions": 0,
+                    "completion_rate": 0,
+                    "last_action": None,
+                },
+            ),
+            (statistics_model.get_actions_by_type, "get_all", []),
+            (statistics_model.get_actions_by_status, "get_all", []),
+            (statistics_model.get_upcoming_deadlines, "get_all", []),
+            (statistics_model.get_completion_rate, "get_one", {"rate": 0}),
+            (statistics_model.get_actions_over_time, "get_all", []),
+            (statistics_model.get_process_statistics, "get_all", []),
+        ],
+    )
+    async def test_funcion_estadistica_devuelve_fallback_si_falla_bd(
+        self, monkeypatch, statistics_function, database_function, expected
+    ):
+        # Arrange: make the database query fail.
+        async def fail_database_query(*args, **kwargs):
+            raise RuntimeError("database unavailable")
+
+        monkeypatch.setattr(statistics_model, database_function, fail_database_query)
+
+        # Act: call the statistics function.
+        result = await statistics_function()
+
+        # Assert: return the fallback value for this function.
+        assert result == expected
