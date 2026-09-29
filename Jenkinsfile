@@ -4,6 +4,11 @@ pipeline {
     environment {
         COMPOSE_PROJECT = 'elcomitepdca'
         SONAR_SCANNER = tool 'SonarScanner'
+        CI = 'true'
+    }
+
+    options {
+        disableConcurrentBuilds()
     }
 
     triggers {
