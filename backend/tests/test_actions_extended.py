@@ -60,6 +60,30 @@ async def test_actions_endpoints_extended(async_client: AsyncClient, admin_user,
     assert update_res.status_code == 200
     assert update_res.json()["completion_percentage"] == 50
 
-    # 8. Delete action
+    # 8. Create action with form / evidence endpoint
+    form_data = {
+        "process_id": str(proc_id),
+        "leader_id": str(leader_id),
+        "name": "Acción con evidencia",
+        "origin": "Revisión",
+        "status": "pending",
+        "completion_percentage": "0"
+    }
+    create_form_res = await async_client.post("/api/actions/with-evidence", headers=admin_user["headers"], data=form_data)
+    assert create_form_res.status_code == 200
+    form_action_id = create_form_res.json()["id"]
+
+    # 9. Update action with form / evidence endpoint
+    update_form_res = await async_client.put(
+        f"/api/actions/{form_action_id}/with-evidence",
+        headers=admin_user["headers"],
+        data={"name": "Acción actualizada con form", "completion_percentage": "20"}
+    )
+    assert update_form_res.status_code == 200
+
+    # 10. Delete actions
     del_res = await async_client.delete(f"/api/actions/{action_id}", headers=admin_user["headers"])
     assert del_res.status_code == 200
+
+    del_form_res = await async_client.delete(f"/api/actions/{form_action_id}", headers=admin_user["headers"])
+    assert del_form_res.status_code == 200
