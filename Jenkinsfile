@@ -119,9 +119,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    compose --project-name "$COMPOSE_PROJECT" down --remove-orphans || true
-                    compose --project-name "$COMPOSE_PROJECT" up -d
-                    compose --project-name "$COMPOSE_PROJECT" ps
+                    docker compose --project-name "$COMPOSE_PROJECT" down --remove-orphans || true
+                    docker compose --project-name "$COMPOSE_PROJECT" up -d
+                    docker compose --project-name "$COMPOSE_PROJECT" ps
                 '''
                 echo 'Aplicacion desplegada:'
                 echo '  Frontend: http://localhost:80'
