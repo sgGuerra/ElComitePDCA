@@ -11,10 +11,6 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-    triggers {
-        
-    }
-
     stages {
 
         // Checkout del codigo fuente
