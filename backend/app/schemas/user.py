@@ -1,24 +1,28 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class UserBase(BaseModel):
-    name: str
+    name: str = Field(..., max_length=255)
     email: EmailStr
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., max_length=255)
     roles: List[str] = ["process_leader"]
+    
+    model_config = ConfigDict(extra="forbid")
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=255)
     email: Optional[EmailStr] = None
-    password: Optional[str] = None
+    password: Optional[str] = Field(None, max_length=255)
     roles: Optional[List[str]] = None
     is_active: Optional[bool] = None
+    
+    model_config = ConfigDict(extra="forbid")
 
 
 class UserInDBBase(UserBase):
@@ -29,8 +33,7 @@ class UserInDBBase(UserBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
         
     def __init__(self, **data):
         super().__init__(**data)
