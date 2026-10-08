@@ -87,3 +87,4 @@ docker-compose.override.yml
 
 PRUEBAS_REGRESION.md
 RUN_PRUEBAS_SONAR.ps1
+repomix-output.xml
