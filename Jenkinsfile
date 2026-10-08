@@ -115,6 +115,27 @@ pipeline {
             }
         }
 
+        // Subir imagenes a Docker Hub
+        stage('Docker Push') {
+            steps {
+                // Asegurate de crear una credencial en Jenkins tipo "Username with password" con el ID 'dockerhub-credentials'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PWD', usernameVariable: 'DOCKER_USR')]) {
+                    sh '''
+                        # Iniciar sesion en Docker Hub
+                        echo "$DOCKER_PWD" | docker login -u "$DOCKER_USR" --password-stdin
+                        
+                        # Etiquetar las imagenes locales con tu usuario de Docker Hub
+                        docker tag elcomitepdca-backend:latest $DOCKER_USR/elcomitepdca-backend:latest
+                        docker tag elcomitepdca-frontend:latest $DOCKER_USR/elcomitepdca-frontend:latest
+                        
+                        # Subir las imagenes a Docker Hub
+                        docker push $DOCKER_USR/elcomitepdca-backend:latest
+                        docker push $DOCKER_USR/elcomitepdca-frontend:latest
+                    '''
+                }
+            }
+        }
+
         // Deploy con Docker Compose
         stage('Deploy') {
             steps {
